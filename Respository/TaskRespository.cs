@@ -1,4 +1,5 @@
-﻿using Dapper;
+﻿using Azure.Core;
+using Dapper;
 using System.Data;
 using TaskListAPI.Interface;
 using TaskListAPI.Model;
@@ -13,36 +14,63 @@ namespace TaskListAPI.Respository
             this.dapperContext = _dapperContext;
         }
 
-        public async Task<int> AddTask(TaskResponse task)
+        public async Task<BaseResponse> AddTask(TaskAddUpRequest request)
         {
             try
             {
                 using (var con = dapperContext.CreateConnection())
                 {
                     var param = new DynamicParameters();
-                    param.Add("@Title", task.Title);
-                    param.Add("@StatusId", task.StatusId);
-                    param.Add("@CreateDate", task.CreateDate);
-                    param.Add("@FinishDate", task.FinishDate);
-                    param.Add("@Estimate", task.Estimate);
-                    param.Add("@UserId", task.UserId);
-                    task.TaskId = Convert.ToInt32(await con.ExecuteScalarAsync("AddTask", param, commandType: CommandType.StoredProcedure));
-                    return task.TaskId;
+                    param.Add("@Title", request.task.Title);
+                    param.Add("@StatusId", request.task.StatusId);
+                    param.Add("@CreateDate", request.task.CreateDate);
+                    param.Add("@FinishDate", request.task.FinishDate);
+                    param.Add("@Estimate", request.task.Estimate);
+                    param.Add("@UserId", request.currUserId);
+                    
+                    request.task.TaskId = Convert.ToInt32(await con.ExecuteScalarAsync("AddTask", param, commandType: CommandType.StoredProcedure));
+                    if (request.task.TaskId > 0)
+                    {
+                        return new BaseResponse
+                        {
+                            status = ResponseStatus.Success,
+                            message = "Them thanh cong"
+                        };
+                    }
+
+                    return new BaseResponse
+                    {
+                        status = ResponseStatus.Fail,
+                        message = "Them ko thanh cong"
+                    }; 
                 }
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
         }
 
-        public async Task<bool> DeleteTask(int id)
+        public async Task<BaseResponse> DeleteTask(TaskDelete request)
         {
             try
             {
                 using (var con = dapperContext.CreateConnection())
                 {
                     var param = new DynamicParameters();
-                    param.Add("@TodoId", id);
+                    param.Add("@TaskId", request.id);
                     int rowsAffected = await con.ExecuteAsync("DeleteTask", param, commandType: CommandType.StoredProcedure);
-                    return rowsAffected > 0;
+                    if (rowsAffected > 0)
+                    {
+                        return new BaseResponse
+                        {
+                            status = ResponseStatus.Success,
+                            message = "xoa thanh cong"
+                        };
+                    }
+
+                    return new BaseResponse
+                    {
+                        status = ResponseStatus.Fail,
+                        message = "Khong the xoa"
+                    }; 
                 }
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
@@ -73,7 +101,7 @@ namespace TaskListAPI.Respository
             catch (Exception ex) { throw new Exception(ex.Message); }
         }
 
-        public async Task<bool> UpdateTask(TaskResponse task)
+        public async Task<BaseResponse> UpdateTask(TaskAddUpRequest request)
         {
 
             try
@@ -81,15 +109,29 @@ namespace TaskListAPI.Respository
                 using (var con = dapperContext.CreateConnection())
                 {
                     var param = new DynamicParameters();
-                    param.Add("@Title", task.Title);
-                    param.Add("@StatusId", task.StatusId);
-                    param.Add("@CreateDate", task.CreateDate);
-                    param.Add("@FinishDate", task.FinishDate);
-                    param.Add("@Estimate", task.Estimate);
-                    param.Add("@UserId", task.UserId);
+                    param.Add("@Title", request.task.Title);
+                    param.Add("@StatusId", request.task.StatusId);
+                    param.Add("@CreateDate", request.task.CreateDate);
+                    param.Add("@FinishDate", request.task.FinishDate);
+                    param.Add("@Estimate", request.task.Estimate);
+                    param.Add("@UserId", request.currUserId);
+                    param.Add("@TaskId", request.task.TaskId);
 
                     int rowsAffected = await con.ExecuteAsync("UpdateTask", param, commandType: CommandType.StoredProcedure);
-                    return rowsAffected > 0;
+                    if( rowsAffected > 0)
+                    {
+                        return new BaseResponse
+                        {
+                            status = ResponseStatus.Success,
+                            message = "Cap nhat thanh cong"
+                        };
+                    }
+
+                    return new BaseResponse
+                    {
+                        status = ResponseStatus.Fail,
+                        message = "Cap nhat ko thanh cong"
+                    };
                 }
             }
             catch (Exception ex) { throw new Exception(ex.Message); }

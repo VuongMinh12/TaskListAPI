@@ -24,7 +24,7 @@ namespace TaskListAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<int> AddTask(TaskResponse task)
+        public async Task<BaseResponse> AddTask(TaskAddUpRequest task)
         {
             try
             {
@@ -34,7 +34,7 @@ namespace TaskListAPI.Controllers
         }
 
         [HttpPut]
-        public async Task<bool> UpdateTask(TaskResponse task)
+        public async Task<BaseResponse> UpdateTask(TaskAddUpRequest task)
         {
             try
             {
@@ -44,11 +44,11 @@ namespace TaskListAPI.Controllers
         }
 
         [HttpDelete]
-        public async Task<bool> DeleteTask(int id)
+        public async Task<BaseResponse> DeleteTask(TaskDelete task)
         {
             try
             {
-                return await taskRespository.DeleteTask(id);
+                return await taskRespository.DeleteTask(task);
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
         }

@@ -15,6 +15,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IUserRespository, UserRespository>();
 builder.Services.AddScoped<ITaskRespository, TaskRespository>();
+builder.Services.AddScoped<IStatusRespository, StatusRespository>();
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
