@@ -41,7 +41,8 @@ namespace TaskListAPI.Respository
                         };
                     }
 
-                    string token = CreateJwt(new LoginObject {
+                    string token = CreateJwt(new LoginObject
+                    {
                         UserName = logacc.FirstOrDefault().UserName,
                         Email = logacc.FirstOrDefault().Email,
                         RoleId = logacc.FirstOrDefault().RoleId
@@ -85,6 +86,66 @@ namespace TaskListAPI.Respository
             };
             var token = jwtTokenHandler.CreateToken(tokenDescriptor);
             return jwtTokenHandler.WriteToken(token);
+        }
+
+        public async Task<BaseResponse> SignUp(SignUpRequest request)
+        {
+            try
+            {               
+                using (var con = _context.CreateConnection())
+                {
+                    var param = new DynamicParameters();
+                    param.Add("@PageNumber", 1);
+                    param.Add("@PageSize", 0);
+                    param.Add("@UserName", "");
+                    param.Add("@Email", "");
+                    param.Add("@RoleId ", null);
+                    param.Add("@IsActive ", 1);
+
+                    string errorMess = "da ton tai";
+
+                    var logacc = con.Query<LoginObject>("GetUser", param, commandType: CommandType.StoredProcedure);
+
+                    if(logacc.Any(u => u.UserName == request.UserName))
+                    {
+                        errorMess = "Username " + errorMess;
+                        return new BaseResponse { message = errorMess, status = ResponseStatus.Fail };
+                    }
+                    if (logacc.Any(u => u.Email == request.Email))
+                    {
+                        errorMess = "Email " + errorMess;
+                        return new BaseResponse { message = errorMess, status = ResponseStatus.Fail };
+                    }
+
+
+
+                    else {
+                        var signup = new DynamicParameters();
+                        signup.Add("@Email", request.Email);
+                        signup.Add("@UserName", request.UserName);
+                        signup.Add("@Password", request.Password);
+                        signup.Add("@RoleId ", request.RoleId);
+
+                        var id = Convert.ToInt32(await con.ExecuteScalarAsync("AddUser", signup, commandType: CommandType.StoredProcedure));
+                    if (id > 0)
+                    {
+                        return new BaseResponse
+                        {
+                            status = ResponseStatus.Success,
+                            message = "Them thanh cong"
+                        };
+                    }
+
+                    return new BaseResponse
+                    {
+                        status = ResponseStatus.Fail,
+                        message = "Khong the tao tai khoan"
+                    };
+                    }
+                }
+
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
         }
     }
 }

@@ -2,9 +2,9 @@
 {
     public class TaskAddUpRequest : BaseRequest
     {
-        public TaskUpdateObject task {get;set;}
+        public TaskUpAddObject task {get;set;}
     }
-    public class TaskUpdateObject
+    public class TaskUpAddObject
     {
         public int TaskId { get; set; }
         public string Title { get; set; }
