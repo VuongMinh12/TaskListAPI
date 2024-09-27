@@ -27,7 +27,7 @@ namespace TaskListAPI.Respository
                     param.Add("@FinishDate", request.task.FinishDate);
                     param.Add("@Estimate", request.task.Estimate);
                     param.Add("@UserId", request.currUserId);
-                    
+
                     request.task.TaskId = Convert.ToInt32(await con.ExecuteScalarAsync("AddTask", param, commandType: CommandType.StoredProcedure));
                     if (request.task.TaskId > 0)
                     {
@@ -41,8 +41,8 @@ namespace TaskListAPI.Respository
                     return new BaseResponse
                     {
                         status = ResponseStatus.Fail,
-                        message = "Them ko thanh cong"
-                    }; 
+                        message = "Them khong thanh cong"
+                    };
                 }
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
@@ -70,7 +70,7 @@ namespace TaskListAPI.Respository
                     {
                         status = ResponseStatus.Fail,
                         message = "Khong the xoa"
-                    }; 
+                    };
                 }
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
@@ -118,7 +118,7 @@ namespace TaskListAPI.Respository
                     param.Add("@TaskId", request.task.TaskId);
 
                     int rowsAffected = await con.ExecuteAsync("UpdateTask", param, commandType: CommandType.StoredProcedure);
-                    if( rowsAffected > 0)
+                    if (rowsAffected > 0)
                     {
                         return new BaseResponse
                         {
@@ -130,11 +130,11 @@ namespace TaskListAPI.Respository
                     return new BaseResponse
                     {
                         status = ResponseStatus.Fail,
-                        message = "Cap nhat ko thanh cong"
+                        message = "Cap nhat khong thanh cong"
                     };
                 }
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
         }
-    } 
+    }
 }

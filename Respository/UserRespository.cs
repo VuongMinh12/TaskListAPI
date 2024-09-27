@@ -91,35 +91,29 @@ namespace TaskListAPI.Respository
         public async Task<BaseResponse> SignUp(SignUpRequest request)
         {
             try
-            {               
+            {
                 using (var con = _context.CreateConnection())
                 {
                     var param = new DynamicParameters();
-                    param.Add("@PageNumber", 1);
-                    param.Add("@PageSize", 0);
-                    param.Add("@UserName", "");
-                    param.Add("@Email", "");
-                    param.Add("@RoleId ", null);
-                    param.Add("@IsActive ", 1);
 
-                    string errorMess = "da ton tai";
+                    param.Add("@UserName", request.UserName);
+                    param.Add("@Email", request.Email);
 
-                    var logacc = con.Query<LoginObject>("GetUser", param, commandType: CommandType.StoredProcedure);
+                    string errorMess = "";
+                    var logacc = con.Query<LoginObject>("Check_Signup", param, commandType: CommandType.StoredProcedure);
 
-                    if(logacc.Any(u => u.UserName == request.UserName))
+                    if (logacc.Any(u => u.UserName == request.UserName))
                     {
-                        errorMess = "Username " + errorMess;
-                        return new BaseResponse { message = errorMess, status = ResponseStatus.Fail };
+                        errorMess += "Username da ton tai";
                     }
                     if (logacc.Any(u => u.Email == request.Email))
                     {
-                        errorMess = "Email " + errorMess;
-                        return new BaseResponse { message = errorMess, status = ResponseStatus.Fail };
+                        errorMess += "Email  da ton tai";
                     }
+                    if (!String.IsNullOrEmpty(errorMess)) return new BaseResponse { message = errorMess, status = ResponseStatus.Fail };
 
-
-
-                    else {
+                    else
+                    {
                         var signup = new DynamicParameters();
                         signup.Add("@Email", request.Email);
                         signup.Add("@UserName", request.UserName);
@@ -127,23 +121,72 @@ namespace TaskListAPI.Respository
                         signup.Add("@RoleId ", request.RoleId);
 
                         var id = Convert.ToInt32(await con.ExecuteScalarAsync("AddUser", signup, commandType: CommandType.StoredProcedure));
-                    if (id > 0)
+                        if (id > 0)
+                        {
+                            return new BaseResponse
+                            {
+                                status = ResponseStatus.Success,
+                                message = "Them thanh cong"
+                            };
+                        }
+
+                        return new BaseResponse
+                        {
+                            status = ResponseStatus.Fail,
+                            message = "Khong the tao tai khoan"
+                        };
+                    }
+                }
+
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+
+        public async Task<BaseResponse> ForgotPass(ForgotPass request)
+        {
+            try
+            {
+                using (var con = _context.CreateConnection())
+                {
+                    var param = new DynamicParameters();
+                    param.Add("@UserName", request.UserName);
+                    param.Add("@Email", request.Email);
+
+
+                    var logacc = con.Query<LoginObject>("Check_ForgotPass", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
+
+                    if (logacc == null)
+                    {
+                        return new BaseResponse
+                        {
+                            status = ResponseStatus.Fail,
+                            message = "User khong ton tai"
+                        };
+                    }
+
+                    var forgot = new DynamicParameters();
+                    forgot.Add("@Email", logacc.Email);
+                    forgot.Add("@UserName", logacc.UserName);
+                    forgot.Add("@Password", request.Password);
+                    forgot.Add("@RoleId", logacc.RoleId);
+                    forgot.Add("@UserId", logacc.UserId);
+
+                    int rowsAffected = await con.ExecuteAsync("UpdateUser", forgot, commandType: CommandType.StoredProcedure);
+                    if (rowsAffected > 0)
                     {
                         return new BaseResponse
                         {
                             status = ResponseStatus.Success,
-                            message = "Them thanh cong"
+                            message = "Cap nhat password thanh cong"
                         };
                     }
 
                     return new BaseResponse
                     {
                         status = ResponseStatus.Fail,
-                        message = "Khong the tao tai khoan"
+                        message = "Cap nhat password khong thanh cong"
                     };
-                    }
                 }
-
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
         }

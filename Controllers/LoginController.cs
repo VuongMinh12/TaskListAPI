@@ -36,5 +36,13 @@ namespace TaskListAPI.Controllers
             var signup = userRespository.SignUp(request);
             return signup;
         }
+
+        [Route("ForgotPassword")]
+        [HttpPost]
+        public Task<BaseResponse> ForgotPass (ForgotPass requets)
+        {
+            var forgot = userRespository.ForgotPass(requets);
+            return forgot;
+        }
     }
 }
