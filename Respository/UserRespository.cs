@@ -1,9 +1,9 @@
 using Dapper;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using TaskListAPI.Interface;
 using TaskListAPI.Model;
@@ -19,7 +19,7 @@ namespace TaskListAPI.Respository
         {
             _context = context;
         }
-
+       
         public LoginResponse Login(LoginRequest request)
         {
             try
@@ -28,7 +28,7 @@ namespace TaskListAPI.Respository
                 {
                     var param = new DynamicParameters();
                     param.Add("@UserName", request.username);
-                    param.Add("@Password", request.password);
+                    param.Add("@Password", GetSHA1HashData(request.password));
 
                     var logacc = con.Query<LoginObject>("LogAcc", param, commandType: CommandType.StoredProcedure);
 
@@ -67,7 +67,6 @@ namespace TaskListAPI.Respository
         {
             var jwtTokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes("stringgggggggggggggggggggggggsecrettokennnnnnnnn");
-
 
             var identity = new ClaimsIdentity(new Claim[]
             {
@@ -117,7 +116,7 @@ namespace TaskListAPI.Respository
                         var signup = new DynamicParameters();
                         signup.Add("@Email", request.Email);
                         signup.Add("@UserName", request.UserName);
-                        signup.Add("@Password", request.Password);
+                        signup.Add("@Password", GetSHA1HashData(request.Password));
                         signup.Add("@RoleId ", request.RoleId);
 
                         var id = Convert.ToInt32(await con.ExecuteScalarAsync("AddUser", signup, commandType: CommandType.StoredProcedure));
@@ -137,7 +136,6 @@ namespace TaskListAPI.Respository
                         };
                     }
                 }
-
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
         }
@@ -189,6 +187,32 @@ namespace TaskListAPI.Respository
                 }
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+
+        private string GetSHA1HashData(string data)
+        {
+            using (SHA1Managed sha1 = new SHA1Managed())
+            {
+                var hash = sha1.ComputeHash(Encoding.UTF8.GetBytes(data));
+                var sb = new StringBuilder(hash.Length * 2);
+
+                foreach (byte b in hash)
+                {
+                    // can be "x2" if you want lowercase
+                    sb.Append(b.ToString("x2"));
+                }
+
+                return sb.ToString();
+            }
+            //    SHA1 sha1 = SHA1.Create();
+            //byte[] hashData = sha1.ComputeHash(Encoding.Default.GetBytes(data));
+            //StringBuilder returnValue = new StringBuilder();
+            //for (int i = 0; i < hashData.Length; i++)
+            //{
+            //    returnValue.Append(hashData[i].ToString());
+            //}
+
+            //return returnValue.ToString();
         }
     }
 }
