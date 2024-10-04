@@ -60,7 +60,7 @@ namespace TaskListAPI.Respository
                     };
                 }
             }
-            catch (Exception ex) { throw new Exception(ex.Message); }
+            catch (Exception ex) { return new LoginResponse { message = ex.Message }; }
         }
 
         private string CreateJwt(LoginObject LoginResponse)
@@ -137,7 +137,7 @@ namespace TaskListAPI.Respository
                     }
                 }
             }
-            catch (Exception ex) { throw new Exception(ex.Message); }
+            catch (Exception ex) { return new LoginResponse { message = ex.Message }; }
         }
 
         public async Task<BaseResponse> ForgotPass(ForgotPass request)
@@ -170,6 +170,8 @@ namespace TaskListAPI.Respository
                     forgot.Add("@UserId", logacc.UserId);
 
                     int rowsAffected = await con.ExecuteAsync("UpdateUser", forgot, commandType: CommandType.StoredProcedure);
+
+                    HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.UpdateTask, 0 ,true, _context);
                     if (rowsAffected > 0)
                     {
                         return new BaseResponse
@@ -186,7 +188,7 @@ namespace TaskListAPI.Respository
                     };
                 }
             }
-            catch (Exception ex) { throw new Exception(ex.Message); }
+            catch (Exception ex) { return new LoginResponse { message = ex.Message }; }
         }
 
         private string GetSHA1HashData(string data)

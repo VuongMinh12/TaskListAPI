@@ -14,6 +14,7 @@ namespace TaskListAPI.Controllers
         {
             this.statusRespository = statusRespository;
         }
+
         [HttpGet]
         public async Task<IEnumerable<StatusResponse>> GetStatus ([FromQuery] StatusRequest status)
         {

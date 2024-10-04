@@ -3,6 +3,7 @@ namespace TaskListAPI.Model
     public class BaseRequest
     {
         public int currUserId { get; set; }
+        public string currUserName { get; set; }
         public int UserRole { get; set; }
     }
     public class BaseResponse

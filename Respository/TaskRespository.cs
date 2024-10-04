@@ -1,6 +1,7 @@
 ﻿using Azure.Core;
 using Dapper;
 using System.Data;
+using System.Diagnostics.Eventing.Reader;
 using TaskListAPI.Interface;
 using TaskListAPI.Model;
 
@@ -31,6 +32,7 @@ namespace TaskListAPI.Respository
                     request.task.TaskId = Convert.ToInt32(await con.ExecuteScalarAsync("AddTask", param, commandType: CommandType.StoredProcedure));
                     if (request.task.TaskId > 0)
                     {
+                        HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.AddTask, request.task.TaskId, true, dapperContext);
                         return new BaseResponse
                         {
                             status = ResponseStatus.Success,
@@ -45,7 +47,7 @@ namespace TaskListAPI.Respository
                     };
                 }
             }
-            catch (Exception ex) { throw new Exception(ex.Message); }
+            catch (Exception ex) { return new BaseResponse {message = ex.Message }; }
         }
 
         public async Task<BaseResponse> DeleteTask(TaskDelete request)
@@ -57,6 +59,7 @@ namespace TaskListAPI.Respository
                     var param = new DynamicParameters();
                     param.Add("@TaskId", request.id);
                     int rowsAffected = await con.ExecuteAsync("DeleteTask", param, commandType: CommandType.StoredProcedure);
+                    HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.DeleteTask, request.id, true, dapperContext);
                     if (rowsAffected > 0)
                     {
                         return new BaseResponse
@@ -73,7 +76,7 @@ namespace TaskListAPI.Respository
                     };
                 }
             }
-            catch (Exception ex) { throw new Exception(ex.Message); }
+            catch (Exception ex) {  return new BaseResponse {message = ex.Message }; }
         }
 
         public async Task<IEnumerable<TaskResponse>> GetTask(TaskRequest request)
@@ -98,7 +101,7 @@ namespace TaskListAPI.Respository
                     return todo.ToList();
                 }
             }
-            catch (Exception ex) { throw new Exception(ex.Message); }
+            catch (Exception ex) { throw new Exception(ex.Message);  }
         }
 
         public async Task<BaseResponse> UpdateTask(TaskAddUpRequest request)
@@ -118,6 +121,7 @@ namespace TaskListAPI.Respository
                     param.Add("@TaskId", request.task.TaskId);
 
                     int rowsAffected = await con.ExecuteAsync("UpdateTask", param, commandType: CommandType.StoredProcedure);
+                    HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.UpdateTask, request.task.TaskId, true, dapperContext);
                     if (rowsAffected > 0)
                     {
                         return new BaseResponse
@@ -134,7 +138,7 @@ namespace TaskListAPI.Respository
                     };
                 }
             }
-            catch (Exception ex) { throw new Exception(ex.Message); }
+            catch (Exception ex) {  return new BaseResponse {message = ex.Message }; }
         }
     }
 }

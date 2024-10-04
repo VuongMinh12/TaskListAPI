@@ -3,15 +3,16 @@ using Microsoft.AspNetCore.Mvc;
 using static TaskListAPI.Model.Login;
 using TaskListAPI.Interface;
 using TaskListAPI.Model;
+using TaskListAPI.Respository;
 
 namespace TaskListAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class LoginController : ControllerBase
+    public class UserController : ControllerBase
     {
         private readonly IUserRespository userRespository;
-        public LoginController(IUserRespository userRespository)
+        public UserController(IUserRespository userRespository)
         {
             this.userRespository = userRespository;
         }
@@ -22,11 +23,10 @@ namespace TaskListAPI.Controllers
         {
             try
             {
-                var logacc = userRespository.Login(request);
-                return logacc;
-
+                //return new LoginResponse { UserName= request.username };
+                return userRespository.Login(request);
             }
-            catch (Exception ex) { throw new Exception(ex.Message); }
+            catch (Exception ex) { return new LoginResponse{ message=ex.Message}; }
         }
 
         [Route("Signup")]
