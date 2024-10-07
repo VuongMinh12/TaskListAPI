@@ -14,7 +14,7 @@ namespace TaskListAPI.Respository
             {
                 using (var con = dapperContext.CreateConnection())
                 {
-                    string content = "Nguoi dung " + currUserName;
+                    string content = "Người dùng " + currUserName;
 
                     switch (type)
                     {
