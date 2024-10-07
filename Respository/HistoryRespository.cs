@@ -20,7 +20,7 @@ namespace TaskListAPI.Respository
                     {
                         case 1:
                             {
-                                content += " tao them";
+                                content += " add";
                                 break;
                             }
                         case 2:
@@ -30,12 +30,12 @@ namespace TaskListAPI.Respository
                             }
                         case 3:
                             {
-                                content += " xoa";
+                                content += " delete";
                                 break;
                             }
                         case 4:
                             {
-                                content += " doi mat khau";
+                                content += " đổi mật khẩu";
                                 break;
                             }
                     }
@@ -60,8 +60,8 @@ namespace TaskListAPI.Respository
                     param.Add("@Time", DateTime.Now);
                     param.Add("@UserId", currUserId);
                     
-
-                    var recordHis = Convert.ToInt32(await con.ExecuteAsync("RecordHistory", param, commandType: CommandType.StoredProcedure));
+                    var recordHis = await con.ExecuteAsync("RecordHistory", param, commandType: CommandType.StoredProcedure);
+                    
                 }
             }
             catch (Exception e) { throw new Exception(e.Message); }

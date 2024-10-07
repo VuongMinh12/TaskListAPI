@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
@@ -36,7 +36,7 @@ namespace TaskListAPI.Respository
                     {
                         return new LoginResponse
                         {
-                            message = "Login khong thanh cong",
+                            message = "Đăng nhập thất bại",
                             status = ResponseStatus.Fail,
                         };
                     }
@@ -50,7 +50,7 @@ namespace TaskListAPI.Respository
 
                     return new LoginResponse
                     {
-                        message = "Login thanh cong",
+                        message = "Đăng nhập thành công",
                         status = ResponseStatus.Success,
                         Token = token,
                         UserName = logacc.FirstOrDefault().UserName,
@@ -63,29 +63,6 @@ namespace TaskListAPI.Respository
             catch (Exception ex) { return new LoginResponse { message = ex.Message }; }
         }
 
-        private string CreateJwt(LoginObject LoginResponse)
-        {
-            var jwtTokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes("stringgggggggggggggggggggggggsecrettokennnnnnnnn");
-
-            var identity = new ClaimsIdentity(new Claim[]
-            {
-                new Claim(ClaimTypes.Email, LoginResponse.Email),
-                new Claim(ClaimTypes.Name,LoginResponse.UserName),
-                new Claim(ClaimTypes.Role,LoginResponse.RoleId.ToString())
-            });
-
-            var credentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = identity,
-                Expires = DateTime.Now.AddDays(1),
-                SigningCredentials = credentials
-            };
-            var token = jwtTokenHandler.CreateToken(tokenDescriptor);
-            return jwtTokenHandler.WriteToken(token);
-        }
 
         public async Task<BaseResponse> SignUp(SignUpRequest request)
         {
@@ -103,11 +80,11 @@ namespace TaskListAPI.Respository
 
                     if (logacc.Any(u => u.UserName == request.UserName))
                     {
-                        errorMess += "Username da ton tai";
+                        errorMess += "Username đã tồn tại! ";
                     }
                     if (logacc.Any(u => u.Email == request.Email))
                     {
-                        errorMess += "Email  da ton tai";
+                        errorMess += " Email đã tồn tại!";
                     }
                     if (!String.IsNullOrEmpty(errorMess)) return new BaseResponse { message = errorMess, status = ResponseStatus.Fail };
 
@@ -125,14 +102,14 @@ namespace TaskListAPI.Respository
                             return new BaseResponse
                             {
                                 status = ResponseStatus.Success,
-                                message = "Them thanh cong"
+                                message = "Đăng ký tài khoản thành công"
                             };
                         }
 
                         return new BaseResponse
                         {
                             status = ResponseStatus.Fail,
-                            message = "Khong the tao tai khoan"
+                            message = "Không thể đăng ký tài khoản"
                         };
                     }
                 }
@@ -150,7 +127,6 @@ namespace TaskListAPI.Respository
                     param.Add("@UserName", request.UserName);
                     param.Add("@Email", request.Email);
 
-
                     var logacc = con.Query<LoginObject>("Check_ForgotPass", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
 
                     if (logacc == null)
@@ -165,7 +141,7 @@ namespace TaskListAPI.Respository
                     var forgot = new DynamicParameters();
                     forgot.Add("@Email", logacc.Email);
                     forgot.Add("@UserName", logacc.UserName);
-                    forgot.Add("@Password", request.Password);
+                    forgot.Add("@Password", GetSHA1HashData(request.Password));
                     forgot.Add("@RoleId", logacc.RoleId);
                     forgot.Add("@UserId", logacc.UserId);
 
@@ -200,21 +176,70 @@ namespace TaskListAPI.Respository
 
                 foreach (byte b in hash)
                 {
-                    // can be "x2" if you want lowercase
                     sb.Append(b.ToString("x2"));
                 }
 
                 return sb.ToString();
             }
-            //    SHA1 sha1 = SHA1.Create();
-            //byte[] hashData = sha1.ComputeHash(Encoding.Default.GetBytes(data));
-            //StringBuilder returnValue = new StringBuilder();
-            //for (int i = 0; i < hashData.Length; i++)
-            //{
-            //    returnValue.Append(hashData[i].ToString());
-            //}
+        }
 
-            //return returnValue.ToString();
+        private string CreateJwt(LoginObject LoginResponse)
+        {
+            var jwtTokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes("stringgggggggggggggggggggggggsecrettokennnnnnnnn");
+
+            var identity = new ClaimsIdentity(new Claim[]
+            {
+                new Claim(ClaimTypes.Email, LoginResponse.Email),
+                new Claim(ClaimTypes.Name,LoginResponse.UserName),
+                new Claim(ClaimTypes.Role,LoginResponse.RoleId.ToString())
+            });
+
+            var credentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = identity,
+                Expires = DateTime.Now.AddDays(1),
+                SigningCredentials = credentials
+            };
+            var token = jwtTokenHandler.CreateToken(tokenDescriptor);
+            return jwtTokenHandler.WriteToken(token);
+        }
+
+        private string CreateRefreshToken()
+        {
+            var tokenBytes = RandomNumberGenerator.GetBytes(64);
+            var refreshToken = Convert.ToBase64String(tokenBytes);
+
+            var tokenInUser = _authContext.Users
+                .Any(a => a.RefreshToken == refreshToken);
+            if (tokenInUser)
+            {
+                return CreateRefreshToken();
+            }
+            return refreshToken;
+        }
+
+        private ClaimsPrincipal GetPrincipleFromExpiredToken(string token)
+        {
+            var key = Encoding.ASCII.GetBytes("stringgggggggggggggggggggggggsecrettokennnnnnnnn");
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateAudience = false,
+                ValidateIssuer = false,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateLifetime = false
+            };
+            var tokenHandler = new JwtSecurityTokenHandler();
+            SecurityToken securityToken;
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
+            var jwtSecurityToken = securityToken as JwtSecurityToken;
+            if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+                throw new SecurityTokenException("This is Invalid Token");
+            return principal;
+
         }
     }
 }

@@ -36,14 +36,14 @@ namespace TaskListAPI.Respository
                         return new BaseResponse
                         {
                             status = ResponseStatus.Success,
-                            message = "Them thanh cong"
+                            message ="Đã thêm task"
                         };
                     }
 
                     return new BaseResponse
                     {
                         status = ResponseStatus.Fail,
-                        message = "Them khong thanh cong"
+                        message = "Không thể thêm task"
                     };
                 }
             }
@@ -65,18 +65,17 @@ namespace TaskListAPI.Respository
                         return new BaseResponse
                         {
                             status = ResponseStatus.Success,
-                            message = "xoa thanh cong"
+                            message = "Đã xóa task"
                         };
                     }
-
                     return new BaseResponse
                     {
                         status = ResponseStatus.Fail,
-                        message = "Khong the xoa"
+                        message = "Không thể xóa task!"
                     };
                 }
             }
-            catch (Exception ex) {  return new BaseResponse {message = ex.Message }; }
+            catch (Exception ex) { return new BaseResponse {message = ex.Message }; }
         }
 
         public async Task<IEnumerable<TaskResponse>> GetTask(TaskRequest request)
@@ -85,7 +84,6 @@ namespace TaskListAPI.Respository
             {
                 using (var con = dapperContext.CreateConnection())
                 {
-
                     var param = new DynamicParameters();
 
                     param.Add("@PageNumber", request.PageNumber);
@@ -97,7 +95,6 @@ namespace TaskListAPI.Respository
                     param.Add("@UserId", request.currUserId == 0 ? null : request.currUserId);
 
                     var todo = await con.QueryAsync<TaskResponse>("GetTask", param, commandType: CommandType.StoredProcedure);
-
                     return todo.ToList();
                 }
             }
@@ -106,7 +103,6 @@ namespace TaskListAPI.Respository
 
         public async Task<BaseResponse> UpdateTask(TaskAddUpRequest request)
         {
-
             try
             {
                 using (var con = dapperContext.CreateConnection())
@@ -127,18 +123,18 @@ namespace TaskListAPI.Respository
                         return new BaseResponse
                         {
                             status = ResponseStatus.Success,
-                            message = "Cap nhat thanh cong"
+                            message = "Cập nhật thành công"
                         };
                     }
 
                     return new BaseResponse
                     {
                         status = ResponseStatus.Fail,
-                        message = "Cap nhat khong thanh cong"
+                        message = "Cập nhật không thành công"
                     };
                 }
             }
-            catch (Exception ex) {  return new BaseResponse {message = ex.Message }; }
+            catch (Exception ex) { return new BaseResponse {message = ex.Message }; }
         }
     }
 }

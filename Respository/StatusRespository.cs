@@ -14,7 +14,8 @@ namespace TaskListAPI.Respository
         }
         public async Task<IEnumerable<StatusResponse>> GetStatus(StatusRequest status)
         {
-            try {
+            try 
+            {
                 using ( var con = dapperContext.CreateConnection())
                 {
                     var param = new DynamicParameters();
