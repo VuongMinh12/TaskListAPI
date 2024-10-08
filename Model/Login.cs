@@ -13,16 +13,16 @@ namespace TaskListAPI.Model
             public string Email { get; set; }
             public string UserName { get; set; }
             public int RoleId { get; set; }
+
         }
 
         public class LoginResponse : BaseResponse
         {
-            public string Token { get; set; }
+            public TokenResponse Token { get; set; }
             public int UserId { get; set; }
             public string Email { get; set; }
             public string UserName { get; set; }
             public int RoleId { get; set; }
-            public string RefreshToken { get; set; }
 
         }
 
@@ -33,6 +33,7 @@ namespace TaskListAPI.Model
             public string Email { get; set; }
             public int RoleId { get; set; }
         }
+
         public class ForgotPass : BaseRequest
         {
             public string Email { get; set; }

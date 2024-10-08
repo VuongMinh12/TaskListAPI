@@ -1,4 +1,6 @@
 ﻿using Azure.Core;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using TaskListAPI.Interface;
@@ -6,6 +8,7 @@ using TaskListAPI.Model;
 
 namespace TaskListAPI.Controllers
 {
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/[controller]")]
     [ApiController]
     public class TaskController : ControllerBase

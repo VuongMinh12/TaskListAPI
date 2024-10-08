@@ -1,4 +1,6 @@
-﻿using Dapper;
+﻿using Azure.Core;
+using Dapper;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
@@ -15,8 +17,14 @@ namespace TaskListAPI.Respository
     public class UserRespository : IUserRespository
     {
         private readonly DapperContext _context;
-        public UserRespository(DapperContext context)
+        //minute
+        private readonly int AccessTokenLifeSpan = 1;
+        //day
+        private readonly int RefreshTokenLifeSpan = 1;
+        public IConfiguration Configuration { get; }
+        public UserRespository(DapperContext context, IConfiguration configuration)
         {
+            Configuration = configuration;
             _context = context;
         }
        
@@ -30,9 +38,9 @@ namespace TaskListAPI.Respository
                     param.Add("@UserName", request.username);
                     param.Add("@Password", GetSHA1HashData(request.password));
 
-                    var logacc = con.Query<LoginObject>("LogAcc", param, commandType: CommandType.StoredProcedure);
+                    var logacc = con.Query<LoginObject>("LogAcc", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
 
-                    if (logacc.Count() == 0 || logacc == null)
+                    if (logacc == null)
                     {
                         return new LoginResponse
                         {
@@ -41,28 +49,33 @@ namespace TaskListAPI.Respository
                         };
                     }
 
-                    string token = CreateJwt(new LoginObject
-                    {
-                        UserName = logacc.FirstOrDefault().UserName,
-                        Email = logacc.FirstOrDefault().Email,
-                        RoleId = logacc.FirstOrDefault().RoleId
-                    });
+                    string accessToken = CreateJwtAccessToken(logacc);
+                    string refreshToken = CreateJwtRefreshToken();
+
+                    var TokenParam = new DynamicParameters();
+                    TokenParam.Add("@UserId", logacc.UserId);
+                    TokenParam.Add("@RefreshToken", refreshToken); 
+                    TokenParam.Add("@RefreshTokenTime", DateTime.Now.AddDays(RefreshTokenLifeSpan));
+                    con.Query("AddToken", TokenParam, commandType: CommandType.StoredProcedure);
 
                     return new LoginResponse
                     {
                         message = "Đăng nhập thành công",
                         status = ResponseStatus.Success,
-                        Token = token,
-                        UserName = logacc.FirstOrDefault().UserName,
-                        Email = logacc.FirstOrDefault().Email,
-                        UserId = logacc.FirstOrDefault().UserId,
-                        RoleId = logacc.FirstOrDefault().RoleId,
+                        Token = new TokenResponse
+                        {
+                            AccessToken = accessToken,
+                            RefreshToken = refreshToken
+                        },
+                        UserName = logacc.UserName,
+                        Email = logacc.Email,
+                        UserId = logacc.UserId,
+                        RoleId = logacc.RoleId,
                     };
                 }
             }
             catch (Exception ex) { return new LoginResponse { message = ex.Message }; }
         }
-
 
         public async Task<BaseResponse> SignUp(SignUpRequest request)
         {
@@ -134,7 +147,7 @@ namespace TaskListAPI.Respository
                         return new BaseResponse
                         {
                             status = ResponseStatus.Fail,
-                            message = "User khong ton tai"
+                            message = "User không tồn tại"
                         };
                     }
 
@@ -153,14 +166,14 @@ namespace TaskListAPI.Respository
                         return new BaseResponse
                         {
                             status = ResponseStatus.Success,
-                            message = "Cap nhat password thanh cong"
+                            message = "Cập nhật password thành công"
                         };
                     }
 
                     return new BaseResponse
                     {
                         status = ResponseStatus.Fail,
-                        message = "Cap nhat password khong thanh cong"
+                        message = "Không thể cập nhật password"
                     };
                 }
             }
@@ -183,10 +196,11 @@ namespace TaskListAPI.Respository
             }
         }
 
-        private string CreateJwt(LoginObject LoginResponse)
+        private string CreateJwtAccessToken(LoginObject LoginResponse)
         {
+            var jwtSettings = Configuration.GetSection("JwtSettings");
             var jwtTokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes("stringgggggggggggggggggggggggsecrettokennnnnnnnn");
+            byte[] key = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]);
 
             var identity = new ClaimsIdentity(new Claim[]
             {
@@ -200,46 +214,50 @@ namespace TaskListAPI.Respository
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = identity,
-                Expires = DateTime.Now.AddDays(1),
-                SigningCredentials = credentials
+                Expires = DateTime.Now.AddMinutes(AccessTokenLifeSpan),
+                SigningCredentials = credentials,
+                Issuer = jwtSettings["Issuer"],
+                Audience = jwtSettings["Audience"]
             };
             var token = jwtTokenHandler.CreateToken(tokenDescriptor);
             return jwtTokenHandler.WriteToken(token);
         }
 
-        private string CreateRefreshToken()
+        private string CreateJwtRefreshToken()
         {
             var tokenBytes = RandomNumberGenerator.GetBytes(64);
-            var refreshToken = Convert.ToBase64String(tokenBytes);
-
-            var tokenInUser = _authContext.Users
-                .Any(a => a.RefreshToken == refreshToken);
-            if (tokenInUser)
-            {
-                return CreateRefreshToken();
-            }
-            return refreshToken;
+            return Convert.ToBase64String(tokenBytes);
         }
 
-        private ClaimsPrincipal GetPrincipleFromExpiredToken(string token)
+        public BaseResponse RefreshToken(RefreshTokenRequest request)
         {
-            var key = Encoding.ASCII.GetBytes("stringgggggggggggggggggggggggsecrettokennnnnnnnn");
-            var tokenValidationParameters = new TokenValidationParameters
+            using (var con = _context.CreateConnection())
             {
-                ValidateAudience = false,
-                ValidateIssuer = false,
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateLifetime = false
-            };
-            var tokenHandler = new JwtSecurityTokenHandler();
-            SecurityToken securityToken;
-            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
-            var jwtSecurityToken = securityToken as JwtSecurityToken;
-            if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
-                throw new SecurityTokenException("This is Invalid Token");
-            return principal;
+                var param = new DynamicParameters();
+                param.Add("@UserId", request.UserId);
+                param.Add("@RefreshToken", request.RefreshToken);
 
+                var user = con.Query<LoginObject>("CheckUserRefreshToken", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
+
+                if (user != null) {
+                    string accessToken = CreateJwtAccessToken(user);
+                    return new RefreshTokenResponse
+                    {
+                        message = "Refresh token thanh cong",
+                        status = ResponseStatus.Success,
+                        newAccessToken = accessToken
+                    };
+                }
+                else
+                {
+                    return new RefreshTokenResponse
+                    {
+                        message = "Refresh token that bai",
+                        status = ResponseStatus.Fail,
+                        newAccessToken = ""
+                    };
+                }
+            }
         }
     }
 }

@@ -44,5 +44,12 @@ namespace TaskListAPI.Controllers
             var forgot = userRespository.ForgotPass(requets);
             return forgot;
         }
+
+        [Route("Refresh")]
+        [HttpPost]
+        public BaseResponse RefreshToken(RefreshTokenRequest request)
+        {
+            return userRespository.RefreshToken(request);
+        }
     }
 }
