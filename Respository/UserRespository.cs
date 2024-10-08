@@ -19,8 +19,8 @@ namespace TaskListAPI.Respository
         private readonly DapperContext _context;
         //minute
         private readonly int AccessTokenLifeSpan = 1;
-        //day
-        private readonly int RefreshTokenLifeSpan = 1;
+        //minute
+        private readonly int RefreshTokenLifeSpan = 30;
         public IConfiguration Configuration { get; }
         public UserRespository(DapperContext context, IConfiguration configuration)
         {
@@ -55,7 +55,7 @@ namespace TaskListAPI.Respository
                     var TokenParam = new DynamicParameters();
                     TokenParam.Add("@UserId", logacc.UserId);
                     TokenParam.Add("@RefreshToken", refreshToken); 
-                    TokenParam.Add("@RefreshTokenTime", DateTime.Now.AddDays(RefreshTokenLifeSpan));
+                    TokenParam.Add("@RefreshTokenTime", DateTime.Now.AddMinutes(RefreshTokenLifeSpan));
                     con.Query("AddToken", TokenParam, commandType: CommandType.StoredProcedure);
 
                     return new LoginResponse
@@ -160,9 +160,9 @@ namespace TaskListAPI.Respository
 
                     int rowsAffected = await con.ExecuteAsync("UpdateUser", forgot, commandType: CommandType.StoredProcedure);
 
-                    HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.UpdateTask, 0 ,true, _context);
                     if (rowsAffected > 0)
                     {
+                        HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.UpdateTask, 0, true, _context);
                         return new BaseResponse
                         {
                             status = ResponseStatus.Success,
@@ -231,33 +231,38 @@ namespace TaskListAPI.Respository
 
         public BaseResponse RefreshToken(RefreshTokenRequest request)
         {
-            using (var con = _context.CreateConnection())
+            try
             {
-                var param = new DynamicParameters();
-                param.Add("@UserId", request.UserId);
-                param.Add("@RefreshToken", request.RefreshToken);
-
-                var user = con.Query<LoginObject>("CheckUserRefreshToken", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
-
-                if (user != null) {
-                    string accessToken = CreateJwtAccessToken(user);
-                    return new RefreshTokenResponse
-                    {
-                        message = "Refresh token thanh cong",
-                        status = ResponseStatus.Success,
-                        newAccessToken = accessToken
-                    };
-                }
-                else
+                using (var con = _context.CreateConnection())
                 {
-                    return new RefreshTokenResponse
+                    var param = new DynamicParameters();
+                    param.Add("@UserId", request.UserId);
+                    param.Add("@RefreshToken", request.RefreshToken);
+
+                    var user = con.Query<LoginObject>("CheckUserRefreshToken", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
+
+                    if (user != null)
                     {
-                        message = "Refresh token that bai",
-                        status = ResponseStatus.Fail,
-                        newAccessToken = ""
-                    };
+                        string accessToken = CreateJwtAccessToken(user);
+                        return new RefreshTokenResponse
+                        {
+                            message = "Refresh token thanh cong",
+                            status = ResponseStatus.Success,
+                            newAccessToken = accessToken
+                        };
+                    }
+                    else
+                    {
+                        return new RefreshTokenResponse
+                        {
+                            message = "Refresh token that bai",
+                            status = ResponseStatus.Fail,
+                            newAccessToken = ""
+                        };
+                    }
                 }
             }
+            catch (Exception ex) { return new BaseResponse { message = ex.Message }; }
         }
     }
 }

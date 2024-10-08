@@ -59,9 +59,9 @@ namespace TaskListAPI.Respository
                     var param = new DynamicParameters();
                     param.Add("@TaskId", request.id);
                     int rowsAffected = await con.ExecuteAsync("DeleteTask", param, commandType: CommandType.StoredProcedure);
-                    HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.DeleteTask, request.id, true, dapperContext);
                     if (rowsAffected > 0)
                     {
+                        HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.DeleteTask, request.id, true, dapperContext);
                         return new BaseResponse
                         {
                             status = ResponseStatus.Success,
@@ -117,9 +117,9 @@ namespace TaskListAPI.Respository
                     param.Add("@TaskId", request.task.TaskId);
 
                     int rowsAffected = await con.ExecuteAsync("UpdateTask", param, commandType: CommandType.StoredProcedure);
-                    HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.UpdateTask, request.task.TaskId, true, dapperContext);
                     if (rowsAffected > 0)
                     {
+                        HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.UpdateTask, request.task.TaskId, true, dapperContext);
                         return new BaseResponse
                         {
                             status = ResponseStatus.Success,
