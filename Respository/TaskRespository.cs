@@ -27,12 +27,11 @@ namespace TaskListAPI.Respository
                     param.Add("@CreateDate", request.task.CreateDate);
                     param.Add("@FinishDate", request.task.FinishDate);
                     param.Add("@Estimate", request.task.Estimate);
-                    param.Add("@UserId", request.currUserId);
 
                     request.task.TaskId = Convert.ToInt32(await con.ExecuteScalarAsync("AddTask", param, commandType: CommandType.StoredProcedure));
                     if (request.task.TaskId > 0)
                     {
-                        HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.AddTask, request.task.TaskId, true, dapperContext);
+                        //HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.AddTask, request.task.TaskId, true, dapperContext);
                         return new BaseResponse
                         {
                             status = ResponseStatus.Success,
@@ -61,7 +60,7 @@ namespace TaskListAPI.Respository
                     int rowsAffected = await con.ExecuteAsync("DeleteTask", param, commandType: CommandType.StoredProcedure);
                     if (rowsAffected > 0)
                     {
-                        HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.DeleteTask, request.id, true, dapperContext);
+                        //HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.DeleteTask, request.id, true, dapperContext);
                         return new BaseResponse
                         {
                             status = ResponseStatus.Success,
@@ -119,7 +118,7 @@ namespace TaskListAPI.Respository
                     int rowsAffected = await con.ExecuteAsync("UpdateTask", param, commandType: CommandType.StoredProcedure);
                     if (rowsAffected > 0)
                     {
-                        HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.UpdateTask, request.task.TaskId, true, dapperContext);
+                        //HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.UpdateTask, request.task.TaskId, true, dapperContext);
                         return new BaseResponse
                         {
                             status = ResponseStatus.Success,

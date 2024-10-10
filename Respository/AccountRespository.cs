@@ -1,6 +1,4 @@
-﻿using Azure.Core;
-using Dapper;
-using Microsoft.Extensions.Configuration;
+﻿using Dapper;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
@@ -9,12 +7,11 @@ using System.Security.Cryptography;
 using System.Text;
 using TaskListAPI.Interface;
 using TaskListAPI.Model;
-using static TaskListAPI.Model.Login;
-
+using static TaskListAPI.Model.Account;
 
 namespace TaskListAPI.Respository
 {
-    public class UserRespository : IUserRespository
+    public class AccountRespository : IAccountRespository
     {
         private readonly DapperContext _context;
         //minute
@@ -22,27 +19,26 @@ namespace TaskListAPI.Respository
         //minute
         private readonly int RefreshTokenLifeSpan = 30;
         public IConfiguration Configuration { get; }
-        public UserRespository(DapperContext context, IConfiguration configuration)
+        public AccountRespository(DapperContext context, IConfiguration configuration)
         {
             Configuration = configuration;
             _context = context;
         }
-       
-        public LoginResponse Login(LoginRequest request)
+        public AccountResponse Login(AccountRequest request)
         {
             try
             {
                 using (var con = _context.CreateConnection())
                 {
                     var param = new DynamicParameters();
-                    param.Add("@UserName", request.username);
+                    param.Add("@Email", request.email);
                     param.Add("@Password", GetSHA1HashData(request.password));
 
-                    var logacc = con.Query<LoginObject>("LogAcc", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
+                    var logacc = con.Query<AccountObject>("LogAcc", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
 
                     if (logacc == null)
                     {
-                        return new LoginResponse
+                        return new AccountResponse
                         {
                             message = "Đăng nhập thất bại",
                             status = ResponseStatus.Fail,
@@ -54,11 +50,11 @@ namespace TaskListAPI.Respository
 
                     var TokenParam = new DynamicParameters();
                     TokenParam.Add("@UserId", logacc.UserId);
-                    TokenParam.Add("@RefreshToken", refreshToken); 
+                    TokenParam.Add("@RefreshToken", refreshToken);
                     TokenParam.Add("@RefreshTokenTime", DateTime.Now.AddMinutes(RefreshTokenLifeSpan));
                     con.Query("AddToken", TokenParam, commandType: CommandType.StoredProcedure);
 
-                    return new LoginResponse
+                    return new AccountResponse
                     {
                         message = "Đăng nhập thành công",
                         status = ResponseStatus.Success,
@@ -67,14 +63,13 @@ namespace TaskListAPI.Respository
                             AccessToken = accessToken,
                             RefreshToken = refreshToken
                         },
-                        UserName = logacc.UserName,
                         Email = logacc.Email,
                         UserId = logacc.UserId,
                         RoleId = logacc.RoleId,
                     };
                 }
             }
-            catch (Exception ex) { return new LoginResponse { message = ex.Message }; }
+            catch (Exception ex) { return new AccountResponse { message = ex.Message }; }
         }
 
         public async Task<BaseResponse> SignUp(SignUpRequest request)
@@ -85,19 +80,14 @@ namespace TaskListAPI.Respository
                 {
                     var param = new DynamicParameters();
 
-                    param.Add("@UserName", request.UserName);
                     param.Add("@Email", request.Email);
 
                     string errorMess = "";
-                    var logacc = con.Query<LoginObject>("Check_Signup", param, commandType: CommandType.StoredProcedure);
+                    var logacc = con.Query<AccountObject>("Check_Signup", param, commandType: CommandType.StoredProcedure);
 
-                    if (logacc.Any(u => u.UserName == request.UserName))
-                    {
-                        errorMess += "Username đã tồn tại! ";
-                    }
                     if (logacc.Any(u => u.Email == request.Email))
                     {
-                        errorMess += " Email đã tồn tại!";
+                         errorMess = "Email đã tồn tại!";
                     }
                     if (!String.IsNullOrEmpty(errorMess)) return new BaseResponse { message = errorMess, status = ResponseStatus.Fail };
 
@@ -105,7 +95,8 @@ namespace TaskListAPI.Respository
                     {
                         var signup = new DynamicParameters();
                         signup.Add("@Email", request.Email);
-                        signup.Add("@UserName", request.UserName);
+                        signup.Add("@FirstName", request.FirstName);
+                        signup.Add("@LastName", request.LastName);
                         signup.Add("@Password", GetSHA1HashData(request.Password));
                         signup.Add("@RoleId ", request.RoleId);
 
@@ -127,7 +118,7 @@ namespace TaskListAPI.Respository
                     }
                 }
             }
-            catch (Exception ex) { return new LoginResponse { message = ex.Message }; }
+            catch (Exception ex) { return new AccountResponse { message = ex.Message }; }
         }
 
         public async Task<BaseResponse> ForgotPass(ForgotPass request)
@@ -137,23 +128,25 @@ namespace TaskListAPI.Respository
                 using (var con = _context.CreateConnection())
                 {
                     var param = new DynamicParameters();
-                    param.Add("@UserName", request.UserName);
                     param.Add("@Email", request.Email);
+                    param.Add("@FirstName", request.FirstName);
+                    param.Add("@LastName", request.LastName);
 
-                    var logacc = con.Query<LoginObject>("Check_ForgotPass", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
+                    var logacc = con.Query<AccountObject>("Check_ForgotPass", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
 
                     if (logacc == null)
                     {
                         return new BaseResponse
                         {
                             status = ResponseStatus.Fail,
-                            message = "User không tồn tại"
+                            message = "Tài khoản không tồn tại"
                         };
                     }
 
                     var forgot = new DynamicParameters();
                     forgot.Add("@Email", logacc.Email);
-                    forgot.Add("@UserName", logacc.UserName);
+                    forgot.Add("@FirstName", logacc.FirstName);
+                    forgot.Add("@LastName", logacc.LastName);
                     forgot.Add("@Password", GetSHA1HashData(request.Password));
                     forgot.Add("@RoleId", logacc.RoleId);
                     forgot.Add("@UserId", logacc.UserId);
@@ -162,7 +155,7 @@ namespace TaskListAPI.Respository
 
                     if (rowsAffected > 0)
                     {
-                        HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.UpdateTask, 0, true, _context);
+                        //HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.UpdateTask, 0, true, _context);
                         return new BaseResponse
                         {
                             status = ResponseStatus.Success,
@@ -177,7 +170,7 @@ namespace TaskListAPI.Respository
                     };
                 }
             }
-            catch (Exception ex) { return new LoginResponse { message = ex.Message }; }
+            catch (Exception ex) { return new AccountResponse { message = ex.Message }; }
         }
 
         private string GetSHA1HashData(string data)
@@ -196,7 +189,7 @@ namespace TaskListAPI.Respository
             }
         }
 
-        private string CreateJwtAccessToken(LoginObject LoginResponse)
+        private string CreateJwtAccessToken(AccountObject AccountResponse)
         {
             var jwtSettings = Configuration.GetSection("JwtSettings");
             var jwtTokenHandler = new JwtSecurityTokenHandler();
@@ -204,9 +197,10 @@ namespace TaskListAPI.Respository
 
             var identity = new ClaimsIdentity(new Claim[]
             {
-                new Claim(ClaimTypes.Email, LoginResponse.Email),
-                new Claim(ClaimTypes.Name,LoginResponse.UserName),
-                new Claim(ClaimTypes.Role,LoginResponse.RoleId.ToString())
+                new Claim(ClaimTypes.Email, AccountResponse.Email),
+                new Claim(ClaimTypes.Name,AccountResponse.FirstName),
+                new Claim(ClaimTypes.Name,AccountResponse.LastName),
+                new Claim(ClaimTypes.Role,AccountResponse.RoleId.ToString())
             });
 
             var credentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
@@ -239,7 +233,7 @@ namespace TaskListAPI.Respository
                     param.Add("@UserId", request.UserId);
                     param.Add("@RefreshToken", request.RefreshToken);
 
-                    var user = con.Query<LoginObject>("CheckUserRefreshToken", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
+                    var user = con.Query<AccountObject>("CheckAccountRefreshToken", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
 
                     if (user != null)
                     {
@@ -266,3 +260,4 @@ namespace TaskListAPI.Respository
         }
     }
 }
+

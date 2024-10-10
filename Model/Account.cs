@@ -1,43 +1,47 @@
 namespace TaskListAPI.Model
 {
-    public class Login
+    public class Account
     {
-        public class LoginRequest 
+        public class AccountRequest 
         {
-            public string username { get; set; }
+            public string email { get; set; }
             public string password { get; set; }
         }
 
-        public class LoginObject{
+        public class AccountObject{
             public int UserId { get; set; }
             public string Email { get; set; }
-            public string UserName { get; set; }
+            public string FirstName { get; set; }
+            public string LastName { get; set; }
             public int RoleId { get; set; }
 
         }
 
-        public class LoginResponse : BaseResponse
+        public class AccountResponse : BaseResponse
         {
             public TokenResponse Token { get; set; }
             public int UserId { get; set; }
             public string Email { get; set; }
-            public string UserName { get; set; }
+            public string FirstName { get; set; }
+            public string LastName { get; set; }
             public int RoleId { get; set; }
 
         }
 
-        public class SignUpRequest : BaseRequest 
+        public class SignUpRequest 
         {
-            public string UserName { get; set; }
-            public string Password { get; set; }
             public string Email { get; set; }
+            public string FirstName { get; set; }
+            public string LastName { get; set; }
+            public string Password { get; set; }
             public int RoleId { get; set; }
         }
 
         public class ForgotPass : BaseRequest
         {
             public string Email { get; set; }
-            public string UserName { get; set; }
+            public string FirstName { get; set; }
+            public string LastName { get; set; }
             public string Password { get; set; }
             
         }
