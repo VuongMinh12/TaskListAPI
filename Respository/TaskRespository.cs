@@ -1,7 +1,9 @@
 ﻿using Azure.Core;
 using Dapper;
+using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using System.Diagnostics.Eventing.Reader;
+using System.Reflection.Metadata.Ecma335;
 using TaskListAPI.Interface;
 using TaskListAPI.Model;
 
@@ -15,125 +17,152 @@ namespace TaskListAPI.Respository
             this.dapperContext = _dapperContext;
         }
 
-        public async Task<BaseResponse> AddTask(TaskAddUpRequest request)
+        public async Task<BaseResponse> AddTask(TaskRequest request)
         {
             try
             {
                 using (var con = dapperContext.CreateConnection())
                 {
-                    var param = new DynamicParameters();
-                    param.Add("@Title", request.task.Title);
-                    param.Add("@StatusId", request.task.StatusId);
-                    param.Add("@CreateDate", request.task.CreateDate);
-                    param.Add("@FinishDate", request.task.FinishDate);
-                    param.Add("@Estimate", request.task.Estimate);
-
-                    request.task.TaskId = Convert.ToInt32(await con.ExecuteScalarAsync("AddTask", param, commandType: CommandType.StoredProcedure));
-                    if (request.task.TaskId > 0)
+                    var addT = new DynamicParameters();
+                    addT.Add("@Title", request.Title);
+                    addT.Add("@StatusId", request.StatusId);
+                    addT.Add("@CreateDate", request.CreateDate);
+                    addT.Add("@FinishDate", request.FinishDate);
+                    addT.Add("@Estimate", request.Estimate);
+                    var taskId = Convert.ToInt32(await con.ExecuteScalarAsync("AddTask", addT, commandType: CommandType.StoredProcedure));
+                    if (taskId > 0)
                     {
-                        //HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.AddTask, request.task.TaskId, true, dapperContext);
+                        var addA = new DynamicParameters();
+                        addA.Add("TaskId", taskId);
+                        addA.Add("UserId", request.currUserId);
+                        var AssId = Convert.ToInt32(await con.ExecuteScalarAsync("AddAssignee", addA, commandType: CommandType.StoredProcedure));
+                        if (AssId > 0)
+                        {
+                            return new BaseResponse
+                            {
+                                message = "Đã thêm task thành công",
+                                status = ResponseStatus.Success
+                            };
+                        }
+                        else
+                        {
+                            return new BaseResponse
+                            {
+                                message = "Chưa thể thêm task",
+                                status = ResponseStatus.Fail
+                            };
+                        }
+                    }
+                    else
+                    {
                         return new BaseResponse
                         {
-                            status = ResponseStatus.Success,
-                            message ="Đã thêm task"
+                            message = "Chưa thể thêm task",
+                            status = ResponseStatus.Fail
                         };
+                    }
+                }
+            }
+            catch (Exception ex) { return new BaseResponse { message = ex.Message }; }
+        }
+
+        public async Task<BaseResponse> UpdateAssignee(UpdateAssignee assignee)
+        {
+            try
+            {
+                using (var con = dapperContext.CreateConnection())
+                {
+                    var delete = new DynamicParameters();
+                    delete.Add("@TaskId", assignee.TaskId);
+                    con.ExecuteAsync("DeleteAssigneeByTaskId", delete, commandType: CommandType.StoredProcedure);
+
+                    for (int i = 0; i < assignee.UserId.Count(); i++)
+                    {
+                        var update = new DynamicParameters();
+                        update.Add("@TaskId", assignee.TaskId);
+                        update.Add("@UserId", assignee.UserId[i]);
+                        await con.QueryFirstAsync("AddAssignee", update, commandType: CommandType.StoredProcedure);
                     }
 
                     return new BaseResponse
                     {
-                        status = ResponseStatus.Fail,
-                        message = "Không thể thêm task"
+                        message = "Assign thành công",
+                        status = ResponseStatus.Success
                     };
+                   
                 }
+
             }
-            catch (Exception ex) { return new BaseResponse {message = ex.Message }; }
+            catch (Exception ex)
+            {
+            return new BaseResponse
+                {
+                    message = "Chưa thể assignee\n"+ ex.Message,
+                    status = ResponseStatus.Fail
+                };
+            }
         }
 
-        public async Task<BaseResponse> DeleteTask(TaskDelete request)
+        public async Task<IEnumerable<TaskResponse>> GetTask(GetTaskRequest request)
         {
             try
             {
                 using (var con = dapperContext.CreateConnection())
                 {
-                    var param = new DynamicParameters();
-                    param.Add("@TaskId", request.id);
-                    int rowsAffected = await con.ExecuteAsync("DeleteTask", param, commandType: CommandType.StoredProcedure);
-                    if (rowsAffected > 0)
+                    var get = new DynamicParameters();
+                    get.Add("@PageNumber", request.PageNumber);
+                    get.Add("@PageSize", request.PageSize);
+                    get.Add("@Title", String.IsNullOrEmpty(request.Title) ? null : request.Title);
+                    get.Add("@StatusId", request.StatusId == 0 ? null : request.StatusId);
+                    get.Add("@CreateDate", String.IsNullOrEmpty(request.CreateDate) ? null : request.CreateDate);
+                    get.Add("@FinishDate", String.IsNullOrEmpty(request.FinishDate) ? null : request.FinishDate);
+                    get.Add("@UserId", request.currUserId == 0 ? null : request.currUserId);
+
+                    var getTask = await con.QueryAsync<TaskResponse>("GetTask",get, commandType: CommandType.StoredProcedure);
+                    
+                    return getTask.ToList();
+                }
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+
+        public async Task<BaseResponse> DeleteTask (int taskId)
+        {
+            try
+            {
+                using (var con = dapperContext.CreateConnection())
+                {
+                    var deleteA = new DynamicParameters();
+                    deleteA.Add("@TaskId", taskId);
+                    int TaskAssignee = await con.ExecuteAsync("DeleteAssigneeByTaskId", deleteA, commandType: CommandType.StoredProcedure);
+                    if (TaskAssignee > 0) 
                     {
-                        //HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.DeleteTask, request.id, true, dapperContext);
+                        var param = new DynamicParameters();
+                        param.Add("@TaskId", taskId);
+                        int rowsAffected = await con.ExecuteAsync("DeleteTask", param, commandType: CommandType.StoredProcedure);
+                        if (rowsAffected > 0)
+                        {
+                            return new BaseResponse
+                            {
+                                status = ResponseStatus.Success,
+                                message = "Đã xóa task"
+                            };
+                        }
                         return new BaseResponse
                         {
-                            status = ResponseStatus.Success,
-                            message = "Đã xóa task"
+                            status = ResponseStatus.Fail,
+                            message = "Không thể xóa task!"
                         };
                     }
                     return new BaseResponse
                     {
-                        status = ResponseStatus.Fail,
-                        message = "Không thể xóa task!"
+                        status = ResponseStatus.NotAllow,
+                        message = "Không được phép xóa!"
                     };
                 }
             }
-            catch (Exception ex) { return new BaseResponse {message = ex.Message }; }
+            catch (Exception ex) { return new BaseResponse { message = ex.Message }; }
         }
 
-        public async Task<IEnumerable<TaskResponse>> GetTask(TaskRequest request)
-        {
-            try
-            {
-                using (var con = dapperContext.CreateConnection())
-                {
-                    var param = new DynamicParameters();
-
-                    param.Add("@PageNumber", request.PageNumber);
-                    param.Add("@PageSize", request.PageSize);
-                    param.Add("@Title", String.IsNullOrEmpty(request.Title) ? null : request.Title);
-                    param.Add("@StatusId", request.StatusId == 0 ? null : request.StatusId);
-                    param.Add("@CreateDate", String.IsNullOrEmpty(request.CreateDate) ? null : request.CreateDate);
-                    param.Add("@FinishDate", String.IsNullOrEmpty(request.FinishDate) ? null : request.FinishDate);
-                    param.Add("@UserId", request.currUserId == 0 ? null : request.currUserId);
-
-                    var todo = await con.QueryAsync<TaskResponse>("GetTask", param, commandType: CommandType.StoredProcedure);
-                    return todo.ToList();
-                }
-            }
-            catch (Exception ex) { throw new Exception(ex.Message);  }
-        }
-
-        public async Task<BaseResponse> UpdateTask(TaskAddUpRequest request)
-        {
-            try
-            {
-                using (var con = dapperContext.CreateConnection())
-                {
-                    var param = new DynamicParameters();
-                    param.Add("@Title", request.task.Title);
-                    param.Add("@StatusId", request.task.StatusId);
-                    param.Add("@CreateDate", request.task.CreateDate);
-                    param.Add("@FinishDate", request.task.FinishDate);
-                    param.Add("@Estimate", request.task.Estimate);
-                    param.Add("@UserId", request.currUserId);
-                    param.Add("@TaskId", request.task.TaskId);
-
-                    int rowsAffected = await con.ExecuteAsync("UpdateTask", param, commandType: CommandType.StoredProcedure);
-                    if (rowsAffected > 0)
-                    {
-                        //HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.UpdateTask, request.task.TaskId, true, dapperContext);
-                        return new BaseResponse
-                        {
-                            status = ResponseStatus.Success,
-                            message = "Cập nhật thành công"
-                        };
-                    }
-
-                    return new BaseResponse
-                    {
-                        status = ResponseStatus.Fail,
-                        message = "Cập nhật không thành công"
-                    };
-                }
-            }
-            catch (Exception ex) { return new BaseResponse {message = ex.Message }; }
-        }
     }
 }

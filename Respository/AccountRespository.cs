@@ -14,10 +14,10 @@ namespace TaskListAPI.Respository
     public class AccountRespository : IAccountRespository
     {
         private readonly DapperContext _context;
-        //minute
+        //day
         private readonly int AccessTokenLifeSpan = 1;
-        //minute
-        private readonly int RefreshTokenLifeSpan = 30;
+        //day
+        private readonly int RefreshTokenLifeSpan = 1;
         public IConfiguration Configuration { get; }
         public AccountRespository(DapperContext context, IConfiguration configuration)
         {
@@ -51,7 +51,7 @@ namespace TaskListAPI.Respository
                     var TokenParam = new DynamicParameters();
                     TokenParam.Add("@UserId", logacc.UserId);
                     TokenParam.Add("@RefreshToken", refreshToken);
-                    TokenParam.Add("@RefreshTokenTime", DateTime.Now.AddMinutes(RefreshTokenLifeSpan));
+                    TokenParam.Add("@RefreshTokenTime", DateTime.Now.AddDays(RefreshTokenLifeSpan));
                     con.Query("AddToken", TokenParam, commandType: CommandType.StoredProcedure);
 
                     return new AccountResponse
@@ -208,7 +208,7 @@ namespace TaskListAPI.Respository
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = identity,
-                Expires = DateTime.Now.AddMinutes(AccessTokenLifeSpan),
+                Expires = DateTime.Now.AddDays(AccessTokenLifeSpan),
                 SigningCredentials = credentials,
                 Issuer = jwtSettings["Issuer"],
                 Audience = jwtSettings["Audience"]
