@@ -10,9 +10,13 @@
     {
         public List<UserResponse> users { get; set; }
     }
-
     public class TaskForUser {
         public int TaskId { get; set; }
         public int UserId { get; set; }
+    }
+
+    public class UserTaskList : BaseResponse
+    {
+        public List<TaskForUser> usersTask { get; set; }
     }
 }

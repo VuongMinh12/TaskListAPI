@@ -4,7 +4,7 @@ namespace TaskListAPI.Interface
 {
     public interface IUserRespository
     {
-        public UserListReponse AllUser();
-        public List<TaskForUser> GetTaskAssignList();
+        public Task<UserListReponse> AllUser();
+        public Task<UserTaskList> GetTaskAssignList();
     }
 }

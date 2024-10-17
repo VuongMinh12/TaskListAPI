@@ -11,7 +11,7 @@ namespace TaskListAPI.Respository
         {
             this.context = context;
         }
-        public UserListReponse AllUser()
+        public async Task<UserListReponse> AllUser()
         {
             try
             {
@@ -33,14 +33,18 @@ namespace TaskListAPI.Respository
             }
         }
 
-        public List<TaskForUser> GetTaskAssignList()
+        public async Task<UserTaskList> GetTaskAssignList()
         {
             try
             {
                 using (var con = context.CreateConnection())
                 {
-                    var list = con.Query<TaskForUser>("GetTaskAssignList");
-                    return list.ToList();
+                    var list = con.Query<TaskForUser>("GetTaskAssignList").ToList();
+                    return new UserTaskList
+                    {
+                        status = ResponseStatus.Success,
+                        usersTask = list
+                    };
                   
                 }
 

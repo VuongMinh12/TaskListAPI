@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using TaskListAPI.Interface;
 using TaskListAPI.Model;
+using static TaskListAPI.Model.TaskAddUpdateRequest;
 
 namespace TaskListAPI.Controllers
 {
@@ -21,7 +22,7 @@ namespace TaskListAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<BaseResponse> AddTask(TaskRequest task)
+        public async Task<BaseResponse> AddTask(TaskAddUpdateRequest task)
         {
             try
             {
@@ -31,11 +32,11 @@ namespace TaskListAPI.Controllers
         }
 
         [HttpPut]
-        public async Task<BaseResponse> UpdateAssignee(UpdateAssignee assignee)
+        public async Task<BaseResponse> UpdateTask(TaskAddUpdateRequest assignee)
         {
             try
             {
-                return await taskRespository.UpdateAssignee(assignee);
+                return await taskRespository.UpdateTask(assignee);
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
         }
@@ -53,11 +54,11 @@ namespace TaskListAPI.Controllers
         }
 
         [HttpDelete]
-        public async Task<BaseResponse> DeleteTask(int id)
+        public async Task<BaseResponse> DeleteTask(TaskDelete delete)
         {
             try
             {
-                return await taskRespository.DeleteTask(id);
+                return await taskRespository.DeleteTask(delete);
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
         }

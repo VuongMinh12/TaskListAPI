@@ -18,7 +18,7 @@ namespace TaskListAPI.Controllers
         }
         [Route("AllUser")]
         [HttpGet]
-        public UserListReponse AllUser([FromQuery]BaseRequest request)
+        public Task<UserListReponse> AllUser([FromQuery]BaseRequest request)
         {
             try
             {
@@ -29,7 +29,7 @@ namespace TaskListAPI.Controllers
 
         [Route("UserTask")]
         [HttpGet]
-        public List<TaskForUser> GetTaskAssignList([FromQuery] BaseRequest request)
+        public Task<UserTaskList> GetTaskAssignList([FromQuery] BaseRequest request)
         {
             try
             {
