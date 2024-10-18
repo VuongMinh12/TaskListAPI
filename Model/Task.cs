@@ -36,8 +36,6 @@
         public DateTime CreateDate { get; set; }
         public DateTime FinishDate { get; set; }
         public int Estimate { get; set; }
-        public int UserId { get; set; }
-        public string Email { get; set; }
     }
 
     public class TaskDelete : BaseRequest

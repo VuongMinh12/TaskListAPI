@@ -34,6 +34,29 @@ namespace TaskListAPI.Respository
 
                     if (taskId > 0)
                     {
+                        if (request.UserRole < 2)
+                        {
+                            var addTA = new DynamicParameters();
+                            addTA.Add("@TaskId", taskId);
+                            addTA.Add("@UserId", request.currUserId);
+                            int AddNew = Convert.ToInt32(await con.ExecuteAsync("AddAssignee", addTA, commandType: CommandType.StoredProcedure));
+                            if (AddNew > 0)
+                            {
+                                return new BaseResponse
+                                {
+                                    message = "Đã thêm task và assignee thành công",
+                                    status = ResponseStatus.Success
+
+                                };
+                            }
+                            return new BaseResponse
+                            {
+                                message = "Chưa thể thêm task",
+                                status = ResponseStatus.Fail
+
+                            };
+                        }
+
                         var addA = new DynamicParameters();
                         var list = request.task.ListUser.Count;
                         if (list > 0)
@@ -46,19 +69,17 @@ namespace TaskListAPI.Respository
                             }
                             return new BaseResponse
                             {
-                                message = "Đã thêm task và assignee thành công",
+                                message = "Đã thêm task cùng assignee thành công",
                                 status = ResponseStatus.Success
 
                             };
                         }
-
                         return new BaseResponse
                         {
                             message = "Đã thêm task thành công",
                             status = ResponseStatus.Success
                         };
                     }
-
                     else
                     {
                         return new BaseResponse
@@ -88,7 +109,7 @@ namespace TaskListAPI.Respository
                     int UpTask = await con.ExecuteAsync("UpdateTask", upT, commandType: CommandType.StoredProcedure);
                     if (UpTask > 0)
                     {
-                        if (update.task.ListUser.Count >= 0)
+                        if (update.task.ListUser.Count >= 0 && update.UserRole > 1)
                         {
                             var delete = new DynamicParameters();
                             delete.Add("@TaskId", update.task.TaskId);
@@ -104,7 +125,7 @@ namespace TaskListAPI.Respository
 
                             return new BaseResponse
                             {
-                                message = "Dã update Task với Assignee",
+                                message = "Dã update Task cùng Assignee",
                                 status = ResponseStatus.Success
                             };
                         }
@@ -146,11 +167,11 @@ namespace TaskListAPI.Respository
                     var get = new DynamicParameters();
                     get.Add("@PageNumber", request.PageNumber);
                     get.Add("@PageSize", request.PageSize);
-                    get.Add("@Title",  request.Title);
+                    get.Add("@Title", request.Title);
                     get.Add("@StatusId", request.StatusId);
                     get.Add("@CreateDate", request.CreateDate);
                     get.Add("@FinishDate", request.FinishDate);
-                    get.Add("@UserId", request.currUserId == 0 ? null : request.currUserId);
+                    get.Add("@CurrUserId", request.currUserId);
 
                     var getTask = await con.QueryAsync<TaskResponse>("GetTask", get, commandType: CommandType.StoredProcedure);
 
@@ -174,7 +195,8 @@ namespace TaskListAPI.Respository
                         var deleteA = new DynamicParameters();
                         deleteA.Add("@TaskId", delete.id);
                         int TaskAssignee = await con.ExecuteAsync("DeleteAssigneeByTaskId", deleteA, commandType: CommandType.StoredProcedure);
-                        if (TaskAssignee > 0) {
+                        if (TaskAssignee > 0)
+                        {
                             return new BaseResponse
                             {
                                 status = ResponseStatus.Success,
