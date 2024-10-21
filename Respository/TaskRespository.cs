@@ -168,7 +168,7 @@ namespace TaskListAPI.Respository
                     get.Add("@PageNumber", request.PageNumber);
                     get.Add("@PageSize", request.PageSize);
                     get.Add("@Title", request.Title);
-                    get.Add("@StatusId", request.StatusId);
+                    get.Add("@StatusId", request.StatusId == 0 ? null : request.StatusId);
                     get.Add("@CreateDate", request.CreateDate);
                     get.Add("@FinishDate", request.FinishDate);
                     get.Add("@CurrUserId", request.currUserId);
