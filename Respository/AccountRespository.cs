@@ -32,7 +32,7 @@ namespace TaskListAPI.Respository
                 {
                     var param = new DynamicParameters();
                     param.Add("@Email", request.email);
-                    param.Add("@Password", GetSHA1HashData(request.password));
+                    param.Add("@Password", HashPass.GetSHA1HashData(request.password));
 
                     var logacc = con.Query<AccountObject>("LogAcc", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
 
@@ -97,7 +97,7 @@ namespace TaskListAPI.Respository
                         signup.Add("@Email", request.Email);
                         signup.Add("@FirstName", request.FirstName);
                         signup.Add("@LastName", request.LastName);
-                        signup.Add("@Password", GetSHA1HashData(request.Password));
+                        signup.Add("@Password", HashPass.GetSHA1HashData(request.Password));
                         signup.Add("@RoleId ", request.RoleId);
 
                         var id = Convert.ToInt32(await con.ExecuteScalarAsync("AddUser", signup, commandType: CommandType.StoredProcedure));
@@ -147,7 +147,7 @@ namespace TaskListAPI.Respository
                     forgot.Add("@Email", logacc.Email);
                     forgot.Add("@FirstName", logacc.FirstName);
                     forgot.Add("@LastName", logacc.LastName);
-                    forgot.Add("@Password", GetSHA1HashData(request.Password));
+                    forgot.Add("@Password", HashPass.GetSHA1HashData(request.Password));
                     forgot.Add("@RoleId", logacc.RoleId);
                     forgot.Add("@UserId", logacc.UserId);
 
@@ -171,22 +171,6 @@ namespace TaskListAPI.Respository
                 }
             }
             catch (Exception ex) { return new AccountResponse { message = ex.Message }; }
-        }
-
-        private string GetSHA1HashData(string data)
-        {
-            using (SHA1Managed sha1 = new SHA1Managed())
-            {
-                var hash = sha1.ComputeHash(Encoding.UTF8.GetBytes(data));
-                var sb = new StringBuilder(hash.Length * 2);
-
-                foreach (byte b in hash)
-                {
-                    sb.Append(b.ToString("x2"));
-                }
-
-                return sb.ToString();
-            }
         }
 
         private string CreateJwtAccessToken(AccountObject AccountResponse)
@@ -260,4 +244,3 @@ namespace TaskListAPI.Respository
         }
     }
 }
-

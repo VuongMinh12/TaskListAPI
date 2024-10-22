@@ -20,8 +20,47 @@ namespace TaskListAPI.Controllers
         [HttpGet]
         public async Task<IEnumerable<StatusResponse>> GetStatus ([FromQuery] StatusRequest status)
         {
-            var getStatus = await statusRespository.GetStatus(status);
-            return getStatus;
+            try
+            {
+                var getStatus = await statusRespository.GetStatus(status);
+                return getStatus;
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+
+        [HttpPost]
+        public async Task<BaseResponse> AddStatus(RequestStatusAddUp request)
+        {
+            try
+            {
+                var addStatus = await statusRespository.AddStatus(request);
+                return addStatus;
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+
+        [Route("UpdateStatus")]
+        [HttpPut]
+        public async Task<BaseResponse> UpdateStatus(RequestStatusAddUp request)
+        {
+            try
+            {
+                var updateStatus = await statusRespository.UpdateStatus(request);
+                return updateStatus;
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+
+        [Route("DeleteStatus")]
+        [HttpPut]    
+        public async Task<BaseResponse> DeleteStatus(StatusDelete delete)
+        {
+            try
+            {
+                var deleteStatus = await statusRespository.DeleteStatus(delete);
+                return deleteStatus;
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
         }
     }
 }

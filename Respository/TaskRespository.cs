@@ -93,33 +93,33 @@ namespace TaskListAPI.Respository
             catch (Exception ex) { return new BaseResponse { message = ex.Message }; }
         }
 
-        public async Task<BaseResponse> UpdateTask(TaskAddUpdateRequest update)
+        public async Task<BaseResponse> UpdateTask(TaskAddUpdateRequest request)
         {
             try
             {
                 using (var con = dapperContext.CreateConnection())
                 {
                     var upT = new DynamicParameters();
-                    upT.Add("@Title", update.task.Title);
-                    upT.Add("@StatusId", update.task.StatusId);
-                    upT.Add("@CreateDate", update.task.CreateDate);
-                    upT.Add("@FinishDate", update.task.FinishDate);
-                    upT.Add("@Estimate", update.task.Estimate);
-                    upT.Add("@TaskId", update.task.TaskId);
+                    upT.Add("@Title", request.task.Title);
+                    upT.Add("@StatusId", request.task.StatusId);
+                    upT.Add("@CreateDate", request.task.CreateDate);
+                    upT.Add("@FinishDate", request.task.FinishDate);
+                    upT.Add("@Estimate", request.task.Estimate);
+                    upT.Add("@TaskId", request.task.TaskId);
                     int UpTask = await con.ExecuteAsync("UpdateTask", upT, commandType: CommandType.StoredProcedure);
                     if (UpTask > 0)
                     {
-                        if (update.task.ListUser.Count >= 0 && update.UserRole > 1)
+                        if (request.task.ListUser.Count >= 0 && request.UserRole > 1)
                         {
                             var delete = new DynamicParameters();
-                            delete.Add("@TaskId", update.task.TaskId);
+                            delete.Add("@TaskId", request.task.TaskId);
                             await con.ExecuteAsync("DeleteAssigneeByTaskId", delete, commandType: CommandType.StoredProcedure);
 
-                            for (int i = 0; i < update.task.ListUser.Count(); i++)
+                            for (int i = 0; i < request.task.ListUser.Count(); i++)
                             {
                                 var assign = new DynamicParameters();
-                                assign.Add("@TaskId", update.task.TaskId);
-                                assign.Add("@UserId", update.task.ListUser[i]);
+                                assign.Add("@TaskId", request.task.TaskId);
+                                assign.Add("@UserId", request.task.ListUser[i]);
                                 await con.QuerySingleOrDefaultAsync("AddAssignee", assign, commandType: CommandType.StoredProcedure);
                             }
 

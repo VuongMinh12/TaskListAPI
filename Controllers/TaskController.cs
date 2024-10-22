@@ -22,21 +22,21 @@ namespace TaskListAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<BaseResponse> AddTask(TaskAddUpdateRequest task)
+        public async Task<BaseResponse> AddTask(TaskAddUpdateRequest request)
         {
             try
             {
-                return await taskRespository.AddTask(task);
+                return await taskRespository.AddTask(request);
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
         }
 
         [HttpPut]
-        public async Task<BaseResponse> UpdateTask(TaskAddUpdateRequest assignee)
+        public async Task<BaseResponse> UpdateTask(TaskAddUpdateRequest request)
         {
             try
             {
-                return await taskRespository.UpdateTask(assignee);
+                return await taskRespository.UpdateTask(request);
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
         }
