@@ -41,7 +41,7 @@ namespace TaskListAPI.Model
     {
         public int id { get; set; }
     }
-    public class GetUserRequest 
+    public class GetUserRequest : BaseRequest
     {
         public int PageNumber { get; set; }
         public int PageSize { get; set; }

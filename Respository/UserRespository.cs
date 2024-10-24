@@ -126,7 +126,7 @@ namespace TaskListAPI.Respository
                     get.Add("@FirstName", request.FirstName);
                     get.Add("@LastName", request.LastName);
                     get.Add("@RoleId", request.RoleId == 0 ? null : request.RoleId);
-                    get.Add("@IsActive", request.IsActive);
+                    get.Add("@IsActive", request.UserRole > 2 ? null : request.IsActive);
 
                     var getList = await con.QueryAsync<GetUserResponse>("GetUser", get, commandType: CommandType.StoredProcedure);
                     return getList.ToList();
