@@ -22,7 +22,6 @@ namespace TaskListAPI.Respository
                 {
                     var update = new DynamicParameters();
                     update.Add("@StatusName", request.status.StatusName);
-                    update.Add("@StatusId", request.status.StatusId);
 
                     int row = Convert.ToInt32(await con.ExecuteAsync("AddStatus", update, commandType: CommandType.StoredProcedure));
 
@@ -71,7 +70,7 @@ namespace TaskListAPI.Respository
                     param.Add("@PageNumber", request.PageNumber);
                     param.Add("@PageSize", request.PageSize);
                     param.Add("@StatusName", request.StatusName);
-                    param.Add("@IsActive", request.IsActive);
+                    param.Add("@IsActive", request.IsActive == -1 ? null : request.IsActive);
 
                     var statusList = await con.QueryAsync<StatusResponse>("GetStatus", param, commandType: CommandType.StoredProcedure);
                     return statusList.ToList();

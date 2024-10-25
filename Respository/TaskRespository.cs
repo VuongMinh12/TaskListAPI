@@ -114,7 +114,7 @@ namespace TaskListAPI.Respository
                     int UpTask = await con.ExecuteAsync("UpdateTask", upT, commandType: CommandType.StoredProcedure);
                     if (UpTask > 0)
                     {
-                        if (request.task.ListUser.Count >= 0 && request.UserRole > 1)
+                        if (request.task.ListUser.Count > 0 && request.UserRole > 1)
                         {
                             var delete = new DynamicParameters();
                             delete.Add("@TaskId", request.task.TaskId);

@@ -30,7 +30,6 @@ namespace TaskListAPI.Model
     public class UserRequestObject
     { 
         public int? UserId { get; set; }
-        [EmailAddress]
         public string? Email { get; set; }
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
@@ -45,7 +44,7 @@ namespace TaskListAPI.Model
     {
         public int PageNumber { get; set; }
         public int PageSize { get; set; }
-        [EmailAddress]
+        
         public string? Email { get; set; }
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
@@ -59,7 +58,6 @@ namespace TaskListAPI.Model
         public string Email { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public string Password { get; set; }
         public int RoleId { get; set; }
         public string RoleName { get; set; }
         public bool IsActive { get; set; }

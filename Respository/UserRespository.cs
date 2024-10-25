@@ -119,13 +119,14 @@ namespace TaskListAPI.Respository
             {
                 using (var con = context.CreateConnection())
                 {
+
                     var get = new DynamicParameters();
                     get.Add("@PageNumber", request.PageNumber);
                     get.Add("@PageSize", request.PageSize);
                     get.Add("@Email", request.Email);
                     get.Add("@FirstName", request.FirstName);
                     get.Add("@LastName", request.LastName);
-                    get.Add("@RoleId", request.RoleId == 0 ? null : request.RoleId);
+                    get.Add("@RoleId", request.RoleId == 0 ? null : request.RoleId <= request.UserRole);
                     get.Add("@IsActive", request.UserRole > 2 ? null : request.IsActive);
 
                     var getList = await con.QueryAsync<GetUserResponse>("GetUser", get, commandType: CommandType.StoredProcedure);
@@ -164,12 +165,13 @@ namespace TaskListAPI.Respository
             {
                 using (var con = context.CreateConnection())
                 {
+
+                    
                     var update = new DynamicParameters();
                     update.Add("@Email", request.user.Email);
                     update.Add("@FirstName", request.user.FirstName);
                     update.Add("@LastName", request.user.LastName);
                     update.Add("@RoleId", request.user.RoleId);
-                    update.Add("@Password", HashPass.GetSHA1HashData(request.user.Password));
                     update.Add("@UserId", request.user.UserId);
 
                     int row = Convert.ToInt32(await con.ExecuteAsync("UpdateUser", update, commandType: CommandType.StoredProcedure));

@@ -7,7 +7,7 @@
         public string RoleName { get; set; }
         public bool IsActive { get; set; }
     }
-    public class RoleRequest 
+    public class RoleRequest : BaseRequest
     {
         public int PageNumber { get; set; }
         public int PageSize { get; set; }

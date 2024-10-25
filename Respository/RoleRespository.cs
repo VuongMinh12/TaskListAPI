@@ -22,7 +22,6 @@ namespace TaskListAPI.Respository
                 {
                     var update = new DynamicParameters();
                     update.Add("@RoleName", request.role.RoleName);
-                    update.Add("@RoleId", request.role.RoleId);
 
                     int row = Convert.ToInt32(await con.ExecuteAsync("AddRole", update, commandType: CommandType.StoredProcedure));
 
@@ -46,7 +45,7 @@ namespace TaskListAPI.Respository
                 using (var con = context.CreateConnection())
                 {
                     var del = new DynamicParameters();
-                    del.Add("@StatusId", delete.id);
+                    del.Add("@RoleId", delete.id);
                     int deleteRole = Convert.ToInt32(await con.ExecuteAsync("DeleteRole", del, commandType: CommandType.StoredProcedure));
                     if (deleteRole > 0)
                     {
@@ -71,7 +70,8 @@ namespace TaskListAPI.Respository
                     get.Add("@PageNumber", request.PageNumber);
                     get.Add("@PageSize", request.PageSize);
                     get.Add("@RoleName", request.RoleName);
-                    get.Add("@IsActive", request.IsActive);
+                    get.Add("@IsActive", request.IsActive == -1 ? null : request.IsActive);
+                    get.Add("@CurrenRole",request.UserRole);
 
                     var allRole = await con.QueryAsync<RoleRespone>("GetRole", get, commandType:CommandType.StoredProcedure); 
                     return allRole.ToList();
