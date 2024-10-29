@@ -25,7 +25,7 @@ namespace TaskListAPI.Controllers
         {
             try
             {
-                return await userRespository.AllUser();
+                return await userRespository.AllUser(request);
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
         }

@@ -3,6 +3,7 @@ using TaskListAPI.Interface;
 using TaskListAPI.Model;
 using System.Data;
 using static TaskListAPI.Model.Account;
+using Azure.Core;
 
 namespace TaskListAPI.Respository
 {
@@ -45,6 +46,7 @@ namespace TaskListAPI.Respository
                         var Add = Convert.ToInt32(await con.ExecuteAsync("AddUser", add, commandType: CommandType.StoredProcedure));
                         if (Add > 0)
                         {
+                            LogRespository.RecordLog(request.currUserId, request.currEmail, 1, Add, 0, context);
                             return new BaseResponse
                             {
                                 status = ResponseStatus.Success,
@@ -62,13 +64,16 @@ namespace TaskListAPI.Respository
             catch (Exception ex) { return new BaseResponse { message = ex.Message }; }
         }
 
-        public async Task<UserListReponse> AllUser()
+        public async Task<UserListReponse> AllUser(BaseRequest request)
         {
             try
             {
                 using (var con = context.CreateConnection())
                 {
-                    var list = con.Query<UserResponse>("GetAllUser").ToList();
+                    var role = new DynamicParameters();
+                    role.Add("@RoleId", request.UserRole);
+
+                    var list = con.Query<UserResponse>("GetAllUser",role,commandType:CommandType.StoredProcedure).ToList();
                     return new UserListReponse
                     {
                         status = ResponseStatus.Success,
@@ -100,8 +105,11 @@ namespace TaskListAPI.Respository
                         int delAssignee = Convert.ToInt32(await con.ExecuteAsync("DeleteAssigneeByUserId", delassign, commandType: CommandType.StoredProcedure));
                         if (delAssignee > 0)
                         {
+                            LogRespository.RecordLog(delete.currUserId, delete.currEmail, 6, delete.id, 0, context);
+                            LogRespository.RecordLog(delete.currUserId, delete.currEmail, 3, delete.id, 0, context);
                             return new BaseResponse { message = "Đã xóa user và assignee", status = ResponseStatus.Success };
                         }
+                        LogRespository.RecordLog(delete.currUserId, delete.currEmail, 3, delete.id, 0, context);
                         return new BaseResponse { message = "Đã xóa user", status = ResponseStatus.Success };
                     }
                     return new BaseResponse { message = "Không thể xóa user", status = ResponseStatus.Fail };
@@ -178,6 +186,7 @@ namespace TaskListAPI.Respository
 
                     if (row > 0)
                     {
+                        LogRespository.RecordLog(request.currUserId, request.currEmail, 2, (int)request.user.UserId, 0, context);
                         return new BaseResponse { status = ResponseStatus.Success, message = "Update User thành công" };
                     }
                     else

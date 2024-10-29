@@ -44,6 +44,14 @@ namespace TaskListAPI.Respository
             {
                 using (var con = context.CreateConnection())
                 {
+                    var check = new DynamicParameters();
+                    check.Add("@RoleId", delete.id);
+                    var list = await con.QueryAsync("CheckRoleinUser", check, commandType: CommandType.StoredProcedure);
+                    if (list.Count() > 0)
+                    {
+                        return new BaseResponse { message = "Đang có user ở role này, không được phép xóa!", status = ResponseStatus.Fail };
+                    }
+
                     var del = new DynamicParameters();
                     del.Add("@RoleId", delete.id);
                     int deleteRole = Convert.ToInt32(await con.ExecuteAsync("DeleteRole", del, commandType: CommandType.StoredProcedure));

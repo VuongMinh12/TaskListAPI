@@ -44,6 +44,14 @@ namespace TaskListAPI.Respository
             {
                 using (var con = dapperContext.CreateConnection())
                 {
+                    var check = new DynamicParameters();
+                    check.Add("@StatusId", delete.id);
+                    var list = await con.QueryAsync("CheckStatusinTask", check, commandType: CommandType.StoredProcedure);
+                    if(list.Count() > 0)
+                    {
+                        return new BaseResponse { message = "Đang có task dùng status này không được phép xóa", status = ResponseStatus.Fail };
+                    }
+
                     var del = new DynamicParameters();
                     del.Add("@StatusId", delete.id);
                     int deleteStatus = Convert.ToInt32(await con.ExecuteAsync("DeleteStatus", del, commandType: CommandType.StoredProcedure));

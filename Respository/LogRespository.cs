@@ -26,7 +26,7 @@ namespace TaskListAPI.Respository
                             }
                         case 2:
                             {
-                                content += " edit";
+                                content += " update";
                                 break;
                             }
                         case 3:

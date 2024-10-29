@@ -5,6 +5,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using TaskListAPI.Interface;
 using TaskListAPI.Model;
 using static TaskListAPI.Model.Account;
@@ -40,7 +41,7 @@ namespace TaskListAPI.Respository
                     {
                         return new AccountResponse
                         {
-                            message = "Đăng nhập thất bại",
+                            message = "Tài khoản này không tồn tại",
                             status = ResponseStatus.Fail,
                         };
                     }
@@ -155,7 +156,7 @@ namespace TaskListAPI.Respository
 
                     if (rowsAffected > 0)
                     {
-                        //HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.UpdateTask, 0, true, _context);
+                        LogRespository.RecordLog(logacc.UserId, logacc.Email, 2,0, logacc.UserId, _context);
                         return new BaseResponse
                         {
                             status = ResponseStatus.Success,

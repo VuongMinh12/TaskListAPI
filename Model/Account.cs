@@ -43,7 +43,7 @@ namespace TaskListAPI.Model
             public int RoleId { get; set; }
         }
 
-        public class ForgotPass : BaseRequest
+        public class ForgotPass 
         {
             [EmailAddress]
             public string Email { get; set; }
