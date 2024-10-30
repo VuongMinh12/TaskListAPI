@@ -21,19 +21,13 @@ namespace TaskListAPI.Respository
             {
                 using (var con = context.CreateConnection())
                 {
-                    var param = new DynamicParameters();
-
-                    param.Add("@Email", request.user.Email);
-
-                    string errorMess = "";
-                    var logacc = con.Query<AccountObject>("Check_Signup", param, commandType: CommandType.StoredProcedure);
-
-                    if (logacc.Any(u => u.Email == request.user.Email))
+                    var check = new DynamicParameters();
+                    check.Add("@Email", request.user.Email);
+                    var checkEmail = await con.QueryAsync("Check_Signup", check, commandType: CommandType.StoredProcedure);
+                    if (checkEmail.Count() > 0)
                     {
-                        errorMess = "Email đã tồn tại!";
+                        return new BaseResponse { status = ResponseStatus.Fail, message = "Email này đã tồn tại. Không được trùng email" };
                     }
-                    if (!String.IsNullOrEmpty(errorMess)) return new BaseResponse { message = errorMess, status = ResponseStatus.Fail };
-
                     else
                     {
                         var add = new DynamicParameters();
@@ -135,7 +129,7 @@ namespace TaskListAPI.Respository
                     get.Add("@FirstName", request.FirstName);
                     get.Add("@LastName", request.LastName);
                     get.Add("@RoleId", request.RoleId == 0 ? null : request.RoleId <= request.UserRole);
-                    get.Add("@IsActive", request.UserRole > 2 ? null : request.IsActive);
+                    get.Add("@IsActive",request.IsActive == -1 ? null : request.IsActive);
 
                     var getList = await con.QueryAsync<GetUserResponse>("GetUser", get, commandType: CommandType.StoredProcedure);
                     return getList.ToList();
@@ -174,7 +168,6 @@ namespace TaskListAPI.Respository
                 using (var con = context.CreateConnection())
                 {
 
-                    
                     var update = new DynamicParameters();
                     update.Add("@Email", request.user.Email);
                     update.Add("@FirstName", request.user.FirstName);

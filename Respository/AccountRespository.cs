@@ -15,10 +15,10 @@ namespace TaskListAPI.Respository
     public class AccountRespository : IAccountRespository
     {
         private readonly DapperContext _context;
-        //day
+        //minute
         private readonly int AccessTokenLifeSpan = 1;
-        //day
-        private readonly int RefreshTokenLifeSpan = 1;
+        //days
+        private readonly int RefreshTokenLifeSpan = 7;
         public IConfiguration Configuration { get; }
         public AccountRespository(DapperContext context, IConfiguration configuration)
         {
@@ -146,13 +146,10 @@ namespace TaskListAPI.Respository
 
                     var forgot = new DynamicParameters();
                     forgot.Add("@Email", logacc.Email);
-                    forgot.Add("@FirstName", logacc.FirstName);
-                    forgot.Add("@LastName", logacc.LastName);
-                    forgot.Add("@Password", HashPass.GetSHA1HashData(request.Password));
-                    forgot.Add("@RoleId", logacc.RoleId);
-                    forgot.Add("@UserId", logacc.UserId);
+                    forgot.Add("@Passsword", HashPass.GetSHA1HashData(request.Password));
+                    
 
-                    int rowsAffected = await con.ExecuteAsync("UpdateUser", forgot, commandType: CommandType.StoredProcedure);
+                    int rowsAffected = await con.ExecuteAsync("UpdatePassword", forgot, commandType: CommandType.StoredProcedure);
 
                     if (rowsAffected > 0)
                     {
@@ -193,7 +190,7 @@ namespace TaskListAPI.Respository
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = identity,
-                Expires = DateTime.Now.AddDays(AccessTokenLifeSpan),
+                Expires = DateTime.Now.AddMinutes(AccessTokenLifeSpan),
                 SigningCredentials = credentials,
                 Issuer = jwtSettings["Issuer"],
                 Audience = jwtSettings["Audience"]
