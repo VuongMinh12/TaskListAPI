@@ -20,6 +20,15 @@ namespace TaskListAPI.Respository
             {
                 using (var con = dapperContext.CreateConnection())
                 {
+                    var check = new DynamicParameters();
+                    check.Add("@StatusName", request.status.StatusName);
+                    check.Add("@StatusId", request.status.StatusId);
+                    var checkStatus = await con.QueryAsync("CheckUpdateAddStatus", check, commandType: CommandType.StoredProcedure);
+                    if (checkStatus.Count() > 0)
+                    {
+                        return new BaseResponse { status = ResponseStatus.Fail, message = "Status tương tự như này đã tồn tại!" };
+                    }
+
                     var update = new DynamicParameters();
                     update.Add("@StatusName", request.status.StatusName);
 
@@ -93,6 +102,15 @@ namespace TaskListAPI.Respository
             {
                 using (var con = dapperContext.CreateConnection())
                 {
+                        var check = new DynamicParameters();
+                    check.Add("@StatusName", request.status.StatusName);
+                    check.Add("@StatusId", request.status.StatusId);
+                    var checkStatus = await con.QueryAsync("CheckUpdateAddStatus", check, commandType: CommandType.StoredProcedure);
+                    if (checkStatus.Count() > 0)
+                    {
+                        return new BaseResponse { status = ResponseStatus.Fail, message = "Status tương tự như này đã tồn tại!" };
+                    }
+
                     var update = new DynamicParameters();
                     update.Add("@StatusName", request.status.StatusName);
                     update.Add("@StatusId", request.status.StatusId);

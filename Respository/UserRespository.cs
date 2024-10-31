@@ -23,10 +23,11 @@ namespace TaskListAPI.Respository
                 {
                     var check = new DynamicParameters();
                     check.Add("@Email", request.user.Email);
-                    var checkEmail = await con.QueryAsync("Check_Signup", check, commandType: CommandType.StoredProcedure);
+                    check.Add("@UserId", request.user.UserId);
+                    var checkEmail = await con.QueryAsync("CheckUpdateAddUser", check, commandType: CommandType.StoredProcedure);
                     if (checkEmail.Count() > 0)
                     {
-                        return new BaseResponse { status = ResponseStatus.Fail, message = "Email này đã tồn tại. Không được trùng email" };
+                        return new BaseResponse { status = ResponseStatus.Fail, message = "Email này đã tồn tại. Vui lòng dùng email khác" };
                     }
                     else
                     {
@@ -121,7 +122,6 @@ namespace TaskListAPI.Respository
             {
                 using (var con = context.CreateConnection())
                 {
-
                     var get = new DynamicParameters();
                     get.Add("@PageNumber", request.PageNumber);
                     get.Add("@PageSize", request.PageSize);
@@ -167,6 +167,14 @@ namespace TaskListAPI.Respository
             {
                 using (var con = context.CreateConnection())
                 {
+                    var check = new DynamicParameters();
+                    check.Add("@UserId", request.user.UserId);
+                    check.Add("@Email", request.user.Email);
+                    var checkUser = await con.QueryAsync("CheckUpdateAddUser", check, commandType: CommandType.StoredProcedure);
+                    if(checkUser.Count() > 0)
+                    {
+                        return new BaseResponse { status = ResponseStatus.Fail, message = "Email này đã tồn tại. Không thể update email này!" };
+                    }
 
                     var update = new DynamicParameters();
                     update.Add("@Email", request.user.Email);

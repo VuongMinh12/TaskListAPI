@@ -20,6 +20,15 @@ namespace TaskListAPI.Respository
             {
                 using (var con = context.CreateConnection())
                 {
+                    var check = new DynamicParameters();
+                    check.Add("@RoleName", request.role.RoleName);
+                    check.Add("@RoleId", request.role.RoleId);
+                    var checkRole = await con.QueryAsync("CheckUpdateAddRole", check, commandType: CommandType.StoredProcedure);
+                    if (checkRole.Count() > 0)
+                    {
+                        return new BaseResponse { status = ResponseStatus.Fail, message = "Role tương tự như này đã tồn tại!" };
+                    }
+
                     var update = new DynamicParameters();
                     update.Add("@RoleName", request.role.RoleName);
 
@@ -93,6 +102,15 @@ namespace TaskListAPI.Respository
             {
                 using (var con = context.CreateConnection())
                 {
+                    var check = new DynamicParameters();
+                    check.Add("@RoleName", request.role.RoleName);
+                    check.Add("@RoleId", request.role.RoleId);
+                    var checkRole = await con.QueryAsync("CheckUpdateAddRole", check, commandType: CommandType.StoredProcedure);
+                    if (checkRole.Count() > 0)
+                    {
+                        return new BaseResponse { status = ResponseStatus.Fail, message = "Role tương tự như này đã tồn tại!" };
+                    }
+
                     var update = new DynamicParameters();
                     update.Add("@RoleName", request.role.RoleName);
                     update.Add("@RoleId", request.role.RoleId);

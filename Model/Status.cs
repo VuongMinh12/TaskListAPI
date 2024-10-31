@@ -24,7 +24,6 @@
     {
         public int StatusId { get; set; }
         public string? StatusName { get; set; }
-        public int? IsActive { get; set; }
     }
     public class StatusDelete : BaseRequest
     {
