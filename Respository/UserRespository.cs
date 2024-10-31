@@ -1,264 +1,198 @@
-﻿using Azure.Core;
-using Dapper;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using System.Data;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
+﻿using Dapper;
 using TaskListAPI.Interface;
 using TaskListAPI.Model;
-using static TaskListAPI.Model.Login;
-
+using System.Data;
+using static TaskListAPI.Model.Account;
+using Azure.Core;
 
 namespace TaskListAPI.Respository
 {
     public class UserRespository : IUserRespository
     {
-        private readonly DapperContext _context;
-        //minute
-        private readonly int AccessTokenLifeSpan = 1;
-        //minute
-        private readonly int RefreshTokenLifeSpan = 30;
-        public IConfiguration Configuration { get; }
-        public UserRespository(DapperContext context, IConfiguration configuration)
+        private readonly DapperContext context;
+        public UserRespository(DapperContext context)
         {
-            Configuration = configuration;
-            _context = context;
+            this.context = context;
         }
-       
-        public LoginResponse Login(LoginRequest request)
+
+        public async Task<BaseResponse> AddUser(UserRequest request)
         {
             try
             {
-                using (var con = _context.CreateConnection())
+                using (var con = context.CreateConnection())
                 {
-                    var param = new DynamicParameters();
-                    param.Add("@UserName", request.username);
-                    param.Add("@Password", GetSHA1HashData(request.password));
-
-                    var logacc = con.Query<LoginObject>("LogAcc", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
-
-                    if (logacc == null)
+                    var check = new DynamicParameters();
+                    check.Add("@Email", request.user.Email);
+                    check.Add("@UserId", request.user.UserId);
+                    var checkEmail = await con.QueryAsync("CheckUpdateAddUser", check, commandType: CommandType.StoredProcedure);
+                    if (checkEmail.Count() > 0)
                     {
-                        return new LoginResponse
-                        {
-                            message = "Đăng nhập thất bại",
-                            status = ResponseStatus.Fail,
-                        };
+                        return new BaseResponse { status = ResponseStatus.Fail, message = "Email này đã tồn tại. Vui lòng dùng email khác" };
                     }
-
-                    string accessToken = CreateJwtAccessToken(logacc);
-                    string refreshToken = CreateJwtRefreshToken();
-
-                    var TokenParam = new DynamicParameters();
-                    TokenParam.Add("@UserId", logacc.UserId);
-                    TokenParam.Add("@RefreshToken", refreshToken); 
-                    TokenParam.Add("@RefreshTokenTime", DateTime.Now.AddMinutes(RefreshTokenLifeSpan));
-                    con.Query("AddToken", TokenParam, commandType: CommandType.StoredProcedure);
-
-                    return new LoginResponse
-                    {
-                        message = "Đăng nhập thành công",
-                        status = ResponseStatus.Success,
-                        Token = new TokenResponse
-                        {
-                            AccessToken = accessToken,
-                            RefreshToken = refreshToken
-                        },
-                        UserName = logacc.UserName,
-                        Email = logacc.Email,
-                        UserId = logacc.UserId,
-                        RoleId = logacc.RoleId,
-                    };
-                }
-            }
-            catch (Exception ex) { return new LoginResponse { message = ex.Message }; }
-        }
-
-        public async Task<BaseResponse> SignUp(SignUpRequest request)
-        {
-            try
-            {
-                using (var con = _context.CreateConnection())
-                {
-                    var param = new DynamicParameters();
-
-                    param.Add("@UserName", request.UserName);
-                    param.Add("@Email", request.Email);
-
-                    string errorMess = "";
-                    var logacc = con.Query<LoginObject>("Check_Signup", param, commandType: CommandType.StoredProcedure);
-
-                    if (logacc.Any(u => u.UserName == request.UserName))
-                    {
-                        errorMess += "Username đã tồn tại! ";
-                    }
-                    if (logacc.Any(u => u.Email == request.Email))
-                    {
-                        errorMess += " Email đã tồn tại!";
-                    }
-                    if (!String.IsNullOrEmpty(errorMess)) return new BaseResponse { message = errorMess, status = ResponseStatus.Fail };
-
                     else
                     {
-                        var signup = new DynamicParameters();
-                        signup.Add("@Email", request.Email);
-                        signup.Add("@UserName", request.UserName);
-                        signup.Add("@Password", GetSHA1HashData(request.Password));
-                        signup.Add("@RoleId ", request.RoleId);
+                        var add = new DynamicParameters();
+                        add.Add("@Email", request.user.Email);
+                        add.Add("@FirstName", request.user.FirstName);
+                        add.Add("@LastName", request.user.LastName);
+                        add.Add("@RoleId", request.user.RoleId);
+                        add.Add("@Password", HashPass.GetSHA1HashData(request.user.Password));
 
-                        var id = Convert.ToInt32(await con.ExecuteScalarAsync("AddUser", signup, commandType: CommandType.StoredProcedure));
-                        if (id > 0)
+                        var Add = Convert.ToInt32(await con.ExecuteAsync("AddUser", add, commandType: CommandType.StoredProcedure));
+                        if (Add > 0)
                         {
+                            LogRespository.RecordLog(request.currUserId, request.currEmail, 1, Add, 0, context);
                             return new BaseResponse
                             {
                                 status = ResponseStatus.Success,
-                                message = "Đăng ký tài khoản thành công"
+                                message = "Đã thêm tài khoản thành công"
                             };
                         }
-
                         return new BaseResponse
                         {
                             status = ResponseStatus.Fail,
-                            message = "Không thể đăng ký tài khoản"
+                            message = "Không thể thêm tài khoản"
                         };
                     }
                 }
             }
-            catch (Exception ex) { return new LoginResponse { message = ex.Message }; }
+            catch (Exception ex) { return new BaseResponse { message = ex.Message }; }
         }
 
-        public async Task<BaseResponse> ForgotPass(ForgotPass request)
+        public async Task<UserListReponse> AllUser(BaseRequest request)
         {
             try
             {
-                using (var con = _context.CreateConnection())
+                using (var con = context.CreateConnection())
                 {
-                    var param = new DynamicParameters();
-                    param.Add("@UserName", request.UserName);
-                    param.Add("@Email", request.Email);
+                    var role = new DynamicParameters();
+                    role.Add("@RoleId", request.UserRole);
 
-                    var logacc = con.Query<LoginObject>("Check_ForgotPass", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
-
-                    if (logacc == null)
+                    var list = con.Query<UserResponse>("GetAllUser",role,commandType:CommandType.StoredProcedure).ToList();
+                    return new UserListReponse
                     {
-                        return new BaseResponse
-                        {
-                            status = ResponseStatus.Fail,
-                            message = "User không tồn tại"
-                        };
-                    }
-
-                    var forgot = new DynamicParameters();
-                    forgot.Add("@Email", logacc.Email);
-                    forgot.Add("@UserName", logacc.UserName);
-                    forgot.Add("@Password", GetSHA1HashData(request.Password));
-                    forgot.Add("@RoleId", logacc.RoleId);
-                    forgot.Add("@UserId", logacc.UserId);
-
-                    int rowsAffected = await con.ExecuteAsync("UpdateUser", forgot, commandType: CommandType.StoredProcedure);
-
-                    if (rowsAffected > 0)
-                    {
-                        HistoryRespository.RecordLog(request.currUserId, request.currUserName, (int)LogHIstory.UpdateTask, 0, true, _context);
-                        return new BaseResponse
-                        {
-                            status = ResponseStatus.Success,
-                            message = "Cập nhật password thành công"
-                        };
-                    }
-
-                    return new BaseResponse
-                    {
-                        status = ResponseStatus.Fail,
-                        message = "Không thể cập nhật password"
+                        status = ResponseStatus.Success,
+                        users = list
                     };
+
                 }
+
             }
-            catch (Exception ex) { return new LoginResponse { message = ex.Message }; }
-        }
-
-        private string GetSHA1HashData(string data)
-        {
-            using (SHA1Managed sha1 = new SHA1Managed())
+            catch (Exception ex)
             {
-                var hash = sha1.ComputeHash(Encoding.UTF8.GetBytes(data));
-                var sb = new StringBuilder(hash.Length * 2);
-
-                foreach (byte b in hash)
-                {
-                    sb.Append(b.ToString("x2"));
-                }
-
-                return sb.ToString();
+                throw new Exception(ex.Message);
             }
         }
 
-        private string CreateJwtAccessToken(LoginObject LoginResponse)
-        {
-            var jwtSettings = Configuration.GetSection("JwtSettings");
-            var jwtTokenHandler = new JwtSecurityTokenHandler();
-            byte[] key = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]);
-
-            var identity = new ClaimsIdentity(new Claim[]
-            {
-                new Claim(ClaimTypes.Email, LoginResponse.Email),
-                new Claim(ClaimTypes.Name,LoginResponse.UserName),
-                new Claim(ClaimTypes.Role,LoginResponse.RoleId.ToString())
-            });
-
-            var credentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = identity,
-                Expires = DateTime.Now.AddMinutes(AccessTokenLifeSpan),
-                SigningCredentials = credentials,
-                Issuer = jwtSettings["Issuer"],
-                Audience = jwtSettings["Audience"]
-            };
-            var token = jwtTokenHandler.CreateToken(tokenDescriptor);
-            return jwtTokenHandler.WriteToken(token);
-        }
-
-        private string CreateJwtRefreshToken()
-        {
-            var tokenBytes = RandomNumberGenerator.GetBytes(64);
-            return Convert.ToBase64String(tokenBytes);
-        }
-
-        public BaseResponse RefreshToken(RefreshTokenRequest request)
+        public async Task<BaseResponse> DeleteUser(UserDelete delete)
         {
             try
             {
-                using (var con = _context.CreateConnection())
+                using (var con = context.CreateConnection())
                 {
-                    var param = new DynamicParameters();
-                    param.Add("@UserId", request.UserId);
-                    param.Add("@RefreshToken", request.RefreshToken);
-
-                    var user = con.Query<LoginObject>("CheckUserRefreshToken", param, commandType: CommandType.StoredProcedure).FirstOrDefault();
-
-                    if (user != null)
+                    var del = new DynamicParameters();
+                    del.Add("@UserId", delete.id);
+                    int deleteUser = Convert.ToInt32(await con.ExecuteAsync("DeleteUser", del, commandType: CommandType.StoredProcedure));
+                    if (deleteUser > 0)
                     {
-                        string accessToken = CreateJwtAccessToken(user);
-                        return new RefreshTokenResponse
+                        var delassign = new DynamicParameters();
+                        delassign.Add("@UserId", delete.id);
+                        int delAssignee = Convert.ToInt32(await con.ExecuteAsync("DeleteAssigneeByUserId", delassign, commandType: CommandType.StoredProcedure));
+                        if (delAssignee > 0)
                         {
-                            message = "Refresh token thanh cong",
-                            status = ResponseStatus.Success,
-                            newAccessToken = accessToken
-                        };
+                            LogRespository.RecordLog(delete.currUserId, delete.currEmail, 6, delete.id, 0, context);
+                            LogRespository.RecordLog(delete.currUserId, delete.currEmail, 3, delete.id, 0, context);
+                            return new BaseResponse { message = "Đã xóa user và assignee", status = ResponseStatus.Success };
+                        }
+                        LogRespository.RecordLog(delete.currUserId, delete.currEmail, 3, delete.id, 0, context);
+                        return new BaseResponse { message = "Đã xóa user", status = ResponseStatus.Success };
+                    }
+                    return new BaseResponse { message = "Không thể xóa user", status = ResponseStatus.Fail };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse { message = ex.Message };
+            }
+        }
+
+        public async Task<IEnumerable<GetUserResponse>> GetAllUser(GetUserRequest request)
+        {
+            try
+            {
+                using (var con = context.CreateConnection())
+                {
+                    var get = new DynamicParameters();
+                    get.Add("@PageNumber", request.PageNumber);
+                    get.Add("@PageSize", request.PageSize);
+                    get.Add("@Email", request.Email);
+                    get.Add("@FirstName", request.FirstName);
+                    get.Add("@LastName", request.LastName);
+                    get.Add("@RoleId", request.RoleId == 0 ? null : request.RoleId <= request.UserRole);
+                    get.Add("@IsActive",request.IsActive == -1 ? null : request.IsActive);
+
+                    var getList = await con.QueryAsync<GetUserResponse>("GetUser", get, commandType: CommandType.StoredProcedure);
+                    return getList.ToList();
+                }
+
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+
+        public async Task<UserTaskList> GetTaskAssignList()
+        {
+            try
+            {
+                using (var con = context.CreateConnection())
+                {
+                    var list = con.Query<TaskForUser>("GetTaskAssignList").ToList();
+                    return new UserTaskList
+                    {
+                        status = ResponseStatus.Success,
+                        usersTask = list
+                    };
+
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+
+        public async Task<BaseResponse> UpdateUser(UserRequest request)
+        {
+            try
+            {
+                using (var con = context.CreateConnection())
+                {
+                    var check = new DynamicParameters();
+                    check.Add("@UserId", request.user.UserId);
+                    check.Add("@Email", request.user.Email);
+                    var checkUser = await con.QueryAsync("CheckUpdateAddUser", check, commandType: CommandType.StoredProcedure);
+                    if(checkUser.Count() > 0)
+                    {
+                        return new BaseResponse { status = ResponseStatus.Fail, message = "Email này đã tồn tại. Không thể update email này!" };
+                    }
+
+                    var update = new DynamicParameters();
+                    update.Add("@Email", request.user.Email);
+                    update.Add("@FirstName", request.user.FirstName);
+                    update.Add("@LastName", request.user.LastName);
+                    update.Add("@RoleId", request.user.RoleId);
+                    update.Add("@UserId", request.user.UserId);
+
+                    int row = Convert.ToInt32(await con.ExecuteAsync("UpdateUser", update, commandType: CommandType.StoredProcedure));
+
+                    if (row > 0)
+                    {
+                        LogRespository.RecordLog(request.currUserId, request.currEmail, 2, (int)request.user.UserId, 0, context);
+                        return new BaseResponse { status = ResponseStatus.Success, message = "Update User thành công" };
                     }
                     else
                     {
-                        return new RefreshTokenResponse
-                        {
-                            message = "Refresh token that bai",
-                            status = ResponseStatus.Fail,
-                            newAccessToken = ""
-                        };
+                        return new BaseResponse { status = ResponseStatus.Fail, message = "Không thể update User" };
                     }
                 }
             }

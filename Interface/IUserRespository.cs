@@ -1,14 +1,14 @@
-using TaskListAPI.Model;
-using static TaskListAPI.Model.Login;
+﻿using TaskListAPI.Model;
 
 namespace TaskListAPI.Interface
 {
-  public interface IUserRespository
-   {
-     public LoginResponse Login(LoginRequest request);
-     public Task<BaseResponse> SignUp(SignUpRequest request);
-     public Task<BaseResponse> ForgotPass(ForgotPass request);
-     public BaseResponse RefreshToken(RefreshTokenRequest request);
-   }
+    public interface IUserRespository
+    {
+        public Task<UserListReponse> AllUser(BaseRequest request);
+        public Task<UserTaskList> GetTaskAssignList();
+        public Task<BaseResponse> AddUser (UserRequest request);
+        public Task<BaseResponse> UpdateUser (UserRequest request);
+        public Task<BaseResponse> DeleteUser (UserDelete delete);
+        public Task<IEnumerable<GetUserResponse>> GetAllUser(GetUserRequest request);
+     }
 }
-

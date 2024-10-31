@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 using TaskListAPI.Interface;
 using TaskListAPI.Model;
+using static TaskListAPI.Model.TaskAddUpdateRequest;
 
 namespace TaskListAPI.Controllers
 {
@@ -19,39 +21,44 @@ namespace TaskListAPI.Controllers
             this.taskRespository = respository;
         }
 
-        [HttpGet]
-        public async Task<IEnumerable<TaskResponse>> GetTask([FromQuery] TaskRequest request)
-        {
-            var Task = await taskRespository.GetTask(request);
-            return Task;
-        }
-
         [HttpPost]
-        public async Task<BaseResponse> AddTask(TaskAddUpRequest task)
+        public async Task<BaseResponse> AddTask(TaskAddUpdateRequest request)
         {
             try
             {
-                return await taskRespository.AddTask(task);
+                return await taskRespository.AddTask(request);
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
         }
 
         [HttpPut]
-        public async Task<BaseResponse> UpdateTask(TaskAddUpRequest task)
+        public async Task<BaseResponse> UpdateTask(TaskAddUpdateRequest request)
         {
             try
             {
-                return await taskRespository.UpdateTask(task);
+                return await taskRespository.UpdateTask(request);
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+
+        [HttpGet]
+        public async Task<IEnumerable<TaskResponse>> GetTask([FromQuery] GetTaskRequest request)
+        {
+            
+            try
+            {
+                var Task = await taskRespository.GetTask(request);
+                return Task;
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
         }
 
         [HttpDelete]
-        public async Task<BaseResponse> DeleteTask(TaskDelete task)
+        public async Task<BaseResponse> DeleteTask(TaskDelete delete)
         {
             try
             {
-                return await taskRespository.DeleteTask(task);
+                return await taskRespository.DeleteTask(delete);
             }
             catch (Exception ex) { throw new Exception(ex.Message); }
         }

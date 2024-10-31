@@ -38,10 +38,12 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 
-builder.Services.AddScoped<IUserRespository, UserRespository>();
+builder.Services.AddScoped<IAccountRespository, AccountRespository>();
 builder.Services.AddScoped<ITaskRespository, TaskRespository>();
 builder.Services.AddScoped<IStatusRespository, StatusRespository>();
-
+builder.Services.AddScoped<IUserRespository, UserRespository>();
+builder.Services.AddScoped<IStatusRespository, StatusRespository>();
+builder.Services.AddScoped<IRoleRespository, RoleRespository>();
 
 builder.Services.AddCors(options =>
 {

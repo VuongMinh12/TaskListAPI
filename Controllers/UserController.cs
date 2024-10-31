@@ -1,12 +1,15 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using static TaskListAPI.Model.Login;
+using System.Threading.Tasks;
 using TaskListAPI.Interface;
 using TaskListAPI.Model;
 using TaskListAPI.Respository;
 
 namespace TaskListAPI.Controllers
 {
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/[controller]")]
     [ApiController]
     public class UserController : ControllerBase
@@ -16,40 +19,66 @@ namespace TaskListAPI.Controllers
         {
             this.userRespository = userRespository;
         }
-
-        [Route("Login")]
-        [HttpPost]
-        public LoginResponse LogAcc(LoginRequest request)
+        [Route("AllUser")]
+        [HttpGet]
+        public async Task<UserListReponse> AllUser([FromQuery]BaseRequest request)
         {
             try
             {
-                //return new LoginResponse { UserName= request.username };
-                return userRespository.Login(request);
+                return await userRespository.AllUser(request);
             }
-            catch (Exception ex) { return new LoginResponse{ message=ex.Message}; }
+            catch (Exception ex) { throw new Exception(ex.Message); }
         }
 
-        [Route("Signup")]
-        [HttpPost]
-        public Task<BaseResponse> SignUp(SignUpRequest request)
+        [Route("UserTask")]
+        [HttpGet]
+        public async Task<UserTaskList> GetTaskAssignList([FromQuery] BaseRequest request)
         {
-            var signup = userRespository.SignUp(request);
-            return signup;
+            try
+            {
+                return await userRespository.GetTaskAssignList();
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
         }
-
-        [Route("ForgotPassword")]
         [HttpPost]
-        public Task<BaseResponse> ForgotPass (ForgotPass requets)
+        public async Task<BaseResponse> AddUser(UserRequest request)
         {
-            var forgot = userRespository.ForgotPass(requets);
-            return forgot;
+            try
+            {
+                return await userRespository.AddUser(request);
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
         }
-
-        [Route("Refresh")]
-        [HttpPost]
-        public BaseResponse RefreshToken(RefreshTokenRequest request)
+        [Route("UpdateUser")]
+        [HttpPut]
+        public async Task<BaseResponse> UpdateUser(UserRequest request)
         {
-            return userRespository.RefreshToken(request);
+            try
+            {
+                return await userRespository.UpdateUser(request);
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+        [Route("DeleteUser")]
+        [HttpPut]
+        public async Task<BaseResponse> DeleteeUser(UserDelete delete)
+        {
+            try
+            {
+                return await userRespository.DeleteUser(delete);
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        }
+        [Route("GetAllUser")]
+        [HttpGet]
+        public  async Task<IEnumerable<GetUserResponse>> GetAllUser([FromQuery] GetUserRequest request)
+        {
+            try
+            {
+                var getUser = await userRespository.GetAllUser(request);
+                return getUser;
+            }
+            catch (Exception ex) { throw new Exception(ex.Message); }
         }
     }
 }
